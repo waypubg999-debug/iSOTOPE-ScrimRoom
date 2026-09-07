@@ -418,7 +418,7 @@ export default function ScrimManagementApp() {
         <header className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-wider text-amber-400">
-              iSOTOPE SCRIM LEADERBOARD
+              CONYSWEETxiSOTOPE SCRIM LEADERBOARD
             </h1>
             <p className="text-sm text-slate-400 mt-1">
               Division 1 ({currentD1Count}/16) | Division 2 ({currentD2Count}/20)
