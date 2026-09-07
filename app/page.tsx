@@ -226,8 +226,8 @@ export default function ScrimManagementApp() {
       if (activeTab === 'match') setActiveTab('d1');
       alert('🔒 ออกจากระบบแอดมินแล้ว');
     } else {
-      const pass = prompt('🔑 กรุณากรอกรหัสผ่านแอดมิน (รหัสเริ่มต้น: 1234):');
-      if (pass === '1234') {
+      const pass = prompt('🔑 กรุณากรอกรหัสผ่านแอดมิน ');
+      if (pass === 'coachway123') {
         setIsAdmin(true);
         alert('🔓 เข้าสู่ระบบแอดมินสำเร็จ!');
       } else if (pass !== null) {
