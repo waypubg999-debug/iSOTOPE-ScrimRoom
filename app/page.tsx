@@ -4,9 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
 export default function ScrimManagementApp() {
-  const [activeTab, setActiveTab] = useState<
-    'd1' | 'd2' | 'match' | 'history' | 'halloffame'
-  >('d1');
+  const [activeTab, setActiveTab] = useState<'d1' | 'd2' | 'match' | 'history' | 'halloffame'>('d1');
   const [teams, setTeams] = useState<any[]>([]);
   const [allTeams, setAllTeams] = useState<any[]>([]);
   const [matchLogs, setMatchLogs] = useState<any[]>([]);
@@ -68,9 +66,7 @@ export default function ScrimManagementApp() {
       .order('team_name', { ascending: true });
     if (allData) setAllTeams(allData);
 
-    const { data: logsData, error: logErr } = await supabase
-      .from('match_logs')
-      .select('*');
+    const { data: logsData, error: logErr } = await supabase.from('match_logs').select('*');
     if (logErr) console.error('Error fetching match_logs:', logErr);
     if (logsData) setMatchLogs(logsData);
 
@@ -93,7 +89,6 @@ export default function ScrimManagementApp() {
     }
   };
 
-  // ดึงข้อมูลรวบรวมทุกทีมที่เคยลงแข่งทุกซีซั่นมาทำเป็น Hall of Fame
   const fetchHallOfFame = async () => {
     const { data: historyData } = await supabase
       .from('season_history')
@@ -105,8 +100,7 @@ export default function ScrimManagementApp() {
       return;
     }
 
-    const teamMap: { [key: string]: { team_name: string; seasons: string[] } } =
-      {};
+    const teamMap: { [key: string]: { team_name: string; seasons: string[] } } = {};
 
     historyData.forEach((season) => {
       const seasonName = season.season_name;
@@ -185,10 +179,7 @@ export default function ScrimManagementApp() {
         (t: any) => t.team_name.toLowerCase() === keyword
       );
       if (foundInD1) {
-        const rank =
-          season.d1_snapshot.findIndex(
-            (t: any) => t.team_name.toLowerCase() === keyword
-          ) + 1;
+        const rank = season.d1_snapshot.findIndex((t: any) => t.team_name.toLowerCase() === keyword) + 1;
         results.push({
           season_id: season.id,
           season_name: season.season_name,
@@ -202,10 +193,7 @@ export default function ScrimManagementApp() {
         (t: any) => t.team_name.toLowerCase() === keyword
       );
       if (foundInD2) {
-        const rank =
-          season.d2_snapshot.findIndex(
-            (t: any) => t.team_name.toLowerCase() === keyword
-          ) + 1;
+        const rank = season.d2_snapshot.findIndex((t: any) => t.team_name.toLowerCase() === keyword) + 1;
         results.push({
           season_id: season.id,
           season_name: season.season_name,
@@ -226,8 +214,8 @@ export default function ScrimManagementApp() {
       if (activeTab === 'match') setActiveTab('d1');
       alert('🔒 ออกจากระบบแอดมินแล้ว');
     } else {
-      const pass = prompt('🔑 กรุณากรอกรหัสผ่านแอดมิน ');
-      if (pass === 'coachway123') {
+      const pass = prompt('🔑 กรุณากรอกรหัสผ่านแอดมิน:');
+      if (pass === 'coachway123') { // <-- เปลี่ยนรหัสผ่านตรงนี้ได้ตามต้องการ
         setIsAdmin(true);
         alert('🔓 เข้าสู่ระบบแอดมินสำเร็จ!');
       } else if (pass !== null) {
@@ -242,8 +230,8 @@ export default function ScrimManagementApp() {
     if (!newTeamName.trim()) return;
 
     const targetDivision = parseInt(newTeamDivision);
-    const currentD1Count = allTeams.filter((t) => t.division_id === 1).length;
-    const currentD2Count = allTeams.filter((t) => t.division_id === 2).length;
+    const currentD1Count = allTeams.filter(t => t.division_id === 1).length;
+    const currentD2Count = allTeams.filter(t => t.division_id === 2).length;
 
     if (targetDivision === 1 && currentD1Count >= 16) {
       alert(`⚠️ Division 1 เต็มแล้ว`);
@@ -333,8 +321,7 @@ export default function ScrimManagementApp() {
         const oldTotalVal = oldPlaceVal + oldKillVal;
 
         if (isWWCD && oldWWCDVal === 0) updatedWWCD = (teamData.wwcd || 0) + 1;
-        else if (!isWWCD && oldWWCDVal > 0)
-          updatedWWCD = Math.max(0, (teamData.wwcd || 0) - 1);
+        else if (!isWWCD && oldWWCDVal > 0) updatedWWCD = Math.max(0, (teamData.wwcd || 0) - 1);
 
         updatedPlace = updatedPlace - oldPlaceVal + pPoints;
         updatedKill = updatedKill - oldKillVal + kPoints;
@@ -342,12 +329,7 @@ export default function ScrimManagementApp() {
 
         await supabase
           .from('match_logs')
-          .update({
-            map_name: mapName,
-            place_points: pPoints,
-            kill_points: kPoints,
-            wwcd: isWWCD ? 1 : 0,
-          })
+          .update({ map_name: mapName, place_points: pPoints, kill_points: kPoints, wwcd: isWWCD ? 1 : 0 })
           .eq('id', existingLog.id);
       } else {
         updatedWWCD = isWWCD ? updatedWWCD + 1 : updatedWWCD;
@@ -370,12 +352,7 @@ export default function ScrimManagementApp() {
 
       await supabase
         .from('teams')
-        .update({
-          wwcd: updatedWWCD,
-          place_points: updatedPlace,
-          kill_points: updatedKill,
-          total_points: updatedTotal,
-        })
+        .update({ wwcd: updatedWWCD, place_points: updatedPlace, kill_points: updatedKill, total_points: updatedTotal })
         .eq('id', selectedTeamId);
 
       alert(`✅ บันทึกคะแนนเรียบร้อย!`);
@@ -396,27 +373,17 @@ export default function ScrimManagementApp() {
 
     setProcessing(true);
     try {
-      const { data: d1Data } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('division_id', 1)
-        .order('total_points', { ascending: false });
-      const { data: d2Data } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('division_id', 2)
-        .order('total_points', { ascending: false });
+      const { data: d1Data } = await supabase.from('teams').select('*').eq('division_id', 1).order('total_points', { ascending: false });
+      const { data: d2Data } = await supabase.from('teams').select('*').eq('division_id', 2).order('total_points', { ascending: false });
 
       if (!d1Data || !d2Data) return;
 
       const d1Full = d1Data.slice(0, 16);
       const d2Full = d2Data.slice(0, 20);
 
-      await supabase
-        .from('season_history')
-        .insert([
-          { season_name: seasonNote, d1_snapshot: d1Full, d2_snapshot: d2Full },
-        ]);
+      await supabase.from('season_history').insert([
+        { season_name: seasonNote, d1_snapshot: d1Full, d2_snapshot: d2Full },
+      ]);
 
       const d1RemainingSafe = d1Full.slice(0, 12);
       const finalD1Relegated = d1Full.slice(12, 16);
@@ -424,28 +391,10 @@ export default function ScrimManagementApp() {
       const finalD2Remaining = d2Full.slice(4, 20);
 
       for (const team of [...d1RemainingSafe, ...finalD2Promoted]) {
-        await supabase
-          .from('teams')
-          .update({
-            division_id: 1,
-            wwcd: 0,
-            place_points: 0,
-            kill_points: 0,
-            total_points: 0,
-          })
-          .eq('id', team.id);
+        await supabase.from('teams').update({ division_id: 1, wwcd: 0, place_points: 0, kill_points: 0, total_points: 0 }).eq('id', team.id);
       }
       for (const team of [...finalD1Relegated, ...finalD2Remaining]) {
-        await supabase
-          .from('teams')
-          .update({
-            division_id: 2,
-            wwcd: 0,
-            place_points: 0,
-            kill_points: 0,
-            total_points: 0,
-          })
-          .eq('id', team.id);
+        await supabase.from('teams').update({ division_id: 2, wwcd: 0, place_points: 0, kill_points: 0, total_points: 0 }).eq('id', team.id);
       }
 
       await supabase.from('match_logs').delete().neq('id', 0);
@@ -459,8 +408,8 @@ export default function ScrimManagementApp() {
     }
   };
 
-  const currentD1Count = allTeams.filter((t) => t.division_id === 1).length;
-  const currentD2Count = allTeams.filter((t) => t.division_id === 2).length;
+  const currentD1Count = allTeams.filter(t => t.division_id === 1).length;
+  const currentD2Count = allTeams.filter(t => t.division_id === 2).length;
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans relative">
@@ -472,8 +421,7 @@ export default function ScrimManagementApp() {
               iSOTOPE SCRIM LEADERBOARD
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Division 1 ({currentD1Count}/16) | Division 2 ({currentD2Count}
-              /20)
+              Division 1 ({currentD1Count}/16) | Division 2 ({currentD2Count}/20)
             </p>
           </div>
           <div>
@@ -521,7 +469,7 @@ export default function ScrimManagementApp() {
                   : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
-              🏛️ ทำเนียบทีม
+              ทำเนียบทีม
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -531,7 +479,7 @@ export default function ScrimManagementApp() {
                   : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
-              📜 ประวัติซีซั่นทั้งหมด
+              ผลการแข่งย้อนหลัง
             </button>
             {isAdmin && (
               <button
@@ -549,67 +497,46 @@ export default function ScrimManagementApp() {
         </div>
 
         {/* Admin Panels */}
-        {isAdmin &&
-          activeTab !== 'history' &&
-          activeTab !== 'match' &&
-          activeTab !== 'halloffame' && (
-            <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-emerald-400">
-                ➕ [Admin] เพิ่มทีมใหม่
-              </h3>
-              <form
-                onSubmit={handleAddTeam}
-                className="flex flex-col md:flex-row gap-3"
-              >
-                <input
-                  type="text"
-                  value={newTeamName}
-                  onChange={(e) => setNewTeamName(e.target.value)}
-                  placeholder="ชื่อทีม..."
-                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
-                />
-                <select
-                  value={newTeamDivision}
-                  onChange={(e) =>
-                    setNewTeamDivision(e.target.value as '1' | '2')
-                  }
-                  className="w-full md:w-48 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-                >
-                  <option value="2">Division 2</option>
-                  <option value="1">Division 1</option>
-                </select>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="bg-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm"
-                >
-                  บันทึกทีม
-                </button>
-              </form>
-            </div>
-          )}
-
-        {isAdmin &&
-          activeTab !== 'history' &&
-          activeTab !== 'match' &&
-          activeTab !== 'halloffame' && (
-            <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row gap-3 items-center">
+        {isAdmin && activeTab !== 'history' && activeTab !== 'match' && activeTab !== 'halloffame' && (
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+            <h3 className="text-sm font-bold text-emerald-400">➕ [Admin] เพิ่มทีมใหม่</h3>
+            <form onSubmit={handleAddTeam} className="flex flex-col md:flex-row gap-3">
               <input
                 type="text"
-                value={seasonNote}
-                onChange={(e) => setSeasonNote(e.target.value)}
-                placeholder="ระบุชื่อซีซั่น (เช่น Season 1)..."
-                className="flex-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+                value={newTeamName}
+                onChange={(e) => setNewTeamName(e.target.value)}
+                placeholder="ชื่อทีม..."
+                className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
               />
-              <button
-                onClick={handleNextSeasonTransition}
-                disabled={processing}
-                className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm shadow-lg"
+              <select
+                value={newTeamDivision}
+                onChange={(e) => setNewTeamDivision(e.target.value as '1' | '2')}
+                className="w-full md:w-48 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
               >
-                🏆 จบซีซั่น & สลับโควต้า
+                <option value="2">Division 2</option>
+                <option value="1">Division 1</option>
+              </select>
+              <button type="submit" disabled={processing} className="bg-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm">
+                บันทึกทีม
               </button>
-            </div>
-          )}
+            </form>
+          </div>
+        )}
+
+        {isAdmin && activeTab !== 'history' && activeTab !== 'match' && activeTab !== 'halloffame' && (
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row gap-3 items-center">
+            <input
+              type="text"
+              value={seasonNote}
+              onChange={(e) => setSeasonNote(e.target.value)}
+              placeholder="ระบุชื่อซีซั่น (เช่น Season 1)..."
+              className="flex-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+            />
+            <button onClick={handleNextSeasonTransition} disabled={processing} className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm shadow-lg">
+              🏆 จบซีซั่น & สลับโควต้า
+            </button>
+          </div>
+        )}
 
         {/* Content Section */}
         {activeTab === 'match' && isAdmin ? (
@@ -620,15 +547,10 @@ export default function ScrimManagementApp() {
             <form onSubmit={handleSaveMatchScore} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    เลือกดิวิชัน
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">เลือกดิวิชัน</label>
                   <select
                     value={gameDivision}
-                    onChange={(e) => {
-                      setGameDivision(e.target.value as '1' | '2');
-                      setSelectedTeamId('');
-                    }}
+                    onChange={(e) => { setGameDivision(e.target.value as '1' | '2'); setSelectedTeamId(''); }}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
                   >
                     <option value="1">Division 1</option>
@@ -636,25 +558,19 @@ export default function ScrimManagementApp() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    เกมที่
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">เกมที่</label>
                   <select
                     value={gameNumber}
                     onChange={(e) => setGameNumber(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
                   >
                     {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <option key={num} value={num}>
-                        เกมที่ {num}
-                      </option>
+                      <option key={num} value={num}>เกมที่ {num}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    แผนที่
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">แผนที่</label>
                   <select
                     value={mapName}
                     onChange={(e) => setMapName(e.target.value)}
@@ -668,9 +584,7 @@ export default function ScrimManagementApp() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  เลือกทีม
-                </label>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">เลือกทีม</label>
                 <select
                   value={selectedTeamId}
                   onChange={(e) => setSelectedTeamId(e.target.value)}
@@ -681,18 +595,14 @@ export default function ScrimManagementApp() {
                   {allTeams
                     .filter((t) => t.division_id.toString() === gameDivision)
                     .map((team) => (
-                      <option key={team.id} value={team.id}>
-                        {team.team_name}
-                      </option>
+                      <option key={team.id} value={team.id}>{team.team_name}</option>
                     ))}
                 </select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    คะแนนอันดับ (Place)
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">คะแนนอันดับ (Place)</label>
                   <input
                     type="number"
                     value={placePoints}
@@ -702,9 +612,7 @@ export default function ScrimManagementApp() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">
-                    คะแนนคิล (Kill)
-                  </label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">คะแนนคิล (Kill)</label>
                   <input
                     type="number"
                     value={killPoints}
@@ -723,19 +631,12 @@ export default function ScrimManagementApp() {
                   onChange={(e) => setIsWWCD(e.target.checked)}
                   className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-emerald-500"
                 />
-                <label
-                  htmlFor="wwcd"
-                  className="text-sm font-semibold text-slate-200 cursor-pointer"
-                >
+                <label htmlFor="wwcd" className="text-sm font-semibold text-slate-200 cursor-pointer">
                   ทีมนี้ได้ไก่ (WWCD)
                 </label>
               </div>
 
-              <button
-                type="submit"
-                disabled={processing}
-                className="w-full bg-emerald-500 text-slate-950 font-bold py-3 px-6 rounded-xl text-sm"
-              >
+              <button type="submit" disabled={processing} className="w-full bg-emerald-500 text-slate-950 font-bold py-3 px-6 rounded-xl text-sm">
                 💾 บันทึกคะแนนแมตช์นี้
               </button>
             </form>
@@ -744,13 +645,8 @@ export default function ScrimManagementApp() {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
               <div>
-                <h2 className="text-xl font-bold text-purple-400">
-                  🏛️ ทำเนียบรายชื่อทีมทั้งหมดทุกซีซั่น
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  รวมชื่อทีมที่เคยเข้าร่วมแข่งขันทั้งหมด
-                  ป้องกันชื่อตกหล่นเวลารับสมัคร OpenChat
-                </p>
+                <h2 className="text-xl font-bold text-purple-400">ทำเนียบทีม</h2>
+                <p className="text-xs text-slate-400 mt-0.5">รวมรายชื่อทีมที่เคยเข้าร่วมแข่งขันทั้งหมด ป้องกันชื่อตกหล่นเวลารับสมัคร OpenChat</p>
               </div>
               <div className="text-xs bg-purple-500/10 border border-purple-500/30 text-purple-300 px-3 py-1.5 rounded-xl font-semibold">
                 รวมทั้งหมด {hallOfFameData.length} ทีม
@@ -760,7 +656,7 @@ export default function ScrimManagementApp() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {hallOfFameData.length > 0 ? (
                 hallOfFameData.map((item, idx) => (
-                  <div
+                  <div 
                     key={idx}
                     onClick={() => handleOpenTeamHistoryModal(item.team_name)}
                     className="bg-slate-950 border border-slate-800/80 hover:border-purple-500/50 rounded-xl p-4 cursor-pointer transition shadow-md flex flex-col justify-between space-y-2 group"
@@ -773,10 +669,7 @@ export default function ScrimManagementApp() {
                     </div>
                     <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-900">
                       {item.seasons.map((sName: string, sIdx: number) => (
-                        <span
-                          key={sIdx}
-                          className="text-[10px] bg-slate-900 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md font-medium"
-                        >
+                        <span key={sIdx} className="text-[10px] bg-slate-900 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md font-medium">
                           {sName}
                         </span>
                       ))}
@@ -785,17 +678,14 @@ export default function ScrimManagementApp() {
                 ))
               ) : (
                 <div className="col-span-full text-center py-12 text-slate-500">
-                  ยังไม่มีประวัติซีซั่นในระบบ
-                  ทำเนียบทีมจะแสดงขึ้นมาเมื่อมีการกดจบซีซั่นแรก
+                  ยังไม่มีประวัติซีซั่นในระบบ ทำเนียบทีมจะแสดงขึ้นมาเมื่อมีการกดจบซีซั่นแรก
                 </div>
               )}
             </div>
           </div>
         ) : activeTab === 'history' ? (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <h2 className="text-xl font-bold text-blue-400">
-              📜 ประวัติผลการแข่งขันซีซั่นที่ผ่านมา
-            </h2>
+            <h2 className="text-xl font-bold text-blue-400">ผลการแข่งย้อนหลัง</h2>
             {historySeasons.length > 0 ? (
               <>
                 <div className="flex gap-2 flex-wrap">
@@ -803,11 +693,7 @@ export default function ScrimManagementApp() {
                     <button
                       key={season.id}
                       onClick={() => setSelectedSeason(season)}
-                      className={`px-4 py-2 rounded-lg font-semibold text-sm border ${
-                        selectedSeason?.id === season.id
-                          ? 'bg-blue-600 border-blue-500 text-white'
-                          : 'bg-slate-800 border-slate-700 text-slate-300'
-                      }`}
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm border ${selectedSeason?.id === season.id ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`}
                     >
                       {season.season_name}
                     </button>
@@ -815,14 +701,12 @@ export default function ScrimManagementApp() {
                 </div>
 
                 {selectedSeason && (
-                  <div className="space-y-6 pt-4 border-t border-slate-800">
-                    <h3 className="text-lg font-bold text-amber-400">
-                      ซีซั่น: {selectedSeason.season_name}
-                    </h3>
+                  <div className="space-y-8 pt-4 border-t border-slate-800">
+                    <h3 className="text-lg font-bold text-amber-400">ซีซั่น: {selectedSeason.season_name}</h3>
+                    
+                    {/* Division 1 Snapshot */}
                     <div className="space-y-3">
-                      <h4 className="text-sm font-bold text-amber-400">
-                        Division 1 (Snapshot)
-                      </h4>
+                      <h4 className="text-sm font-bold text-amber-400">Division 1 (Snapshot)</h4>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead>
@@ -834,48 +718,67 @@ export default function ScrimManagementApp() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-800/60">
-                            {selectedSeason.d1_snapshot?.map(
-                              (team: any, i: number) => (
-                                <tr
-                                  key={i}
-                                  className={i >= 12 ? 'bg-red-950/60' : ''}
-                                >
-                                  <td className="py-2 px-3 font-bold text-amber-400">
-                                    #{i + 1}
-                                  </td>
-                                  <td className="py-2 px-3 text-slate-200">
-                                    <button
-                                      onClick={() =>
-                                        handleOpenTeamHistoryModal(
-                                          team.team_name
-                                        )
-                                      }
-                                      className="hover:text-amber-400 hover:underline decoration-dotted text-left font-semibold"
-                                    >
-                                      {team.team_name}
-                                    </button>
-                                    {i >= 12 ? ' 📉' : ''}
-                                  </td>
-                                  <td className="py-2 px-3 text-center">
-                                    {team.wwcd || 0}
-                                  </td>
-                                  <td className="py-2 px-3 text-right font-bold text-amber-400">
-                                    {team.total_points || 0}
-                                  </td>
-                                </tr>
-                              )
-                            )}
+                            {selectedSeason.d1_snapshot?.map((team: any, i: number) => (
+                              <tr key={i} className={i >= 12 ? 'bg-red-950/60' : ''}>
+                                <td className="py-2 px-3 font-bold text-amber-400">#{i + 1}</td>
+                                <td className="py-2 px-3 text-slate-200">
+                                  <button
+                                    onClick={() => handleOpenTeamHistoryModal(team.team_name)}
+                                    className="hover:text-amber-400 hover:underline decoration-dotted text-left font-semibold"
+                                  >
+                                    {team.team_name}
+                                  </button>
+                                  {i >= 12 ? ' 📉' : ''}
+                                </td>
+                                <td className="py-2 px-3 text-center">{team.wwcd || 0}</td>
+                                <td className="py-2 px-3 text-right font-bold text-amber-400">{team.total_points || 0}</td>
+                              </tr>
+                            ))}
                           </tbody>
                         </table>
                       </div>
                     </div>
+
+                    {/* Division 2 Snapshot */}
+                    <div className="space-y-3 pt-4 border-t border-slate-800/80">
+                      <h4 className="text-sm font-bold text-emerald-400">Division 2 (Snapshot)</h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-800 text-slate-400 text-xs bg-slate-950/40">
+                              <th className="py-2 px-3">อันดับ</th>
+                              <th className="py-2 px-3">ชื่อทีม</th>
+                              <th className="py-2 px-3 text-center">WWCD</th>
+                              <th className="py-2 px-3 text-right">คะแนนรวม</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60">
+                            {selectedSeason.d2_snapshot?.map((team: any, i: number) => (
+                              <tr key={i} className={i < 4 ? 'bg-emerald-950/40' : ''}>
+                                <td className="py-2 px-3 font-bold text-emerald-400">#{i + 1}</td>
+                                <td className="py-2 px-3 text-slate-200">
+                                  <button
+                                    onClick={() => handleOpenTeamHistoryModal(team.team_name)}
+                                    className="hover:text-amber-400 hover:underline decoration-dotted text-left font-semibold"
+                                  >
+                                    {team.team_name}
+                                  </button>
+                                  {i < 4 ? ' 📈' : ''}
+                                </td>
+                                <td className="py-2 px-3 text-center">{team.wwcd || 0}</td>
+                                <td className="py-2 px-3 text-right font-bold text-emerald-400">{team.total_points || 0}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
                   </div>
                 )}
               </>
             ) : (
-              <div className="text-center py-12 text-slate-500">
-                ยังไม่มีประวัติซีซั่น
-              </div>
+              <div className="text-center py-12 text-slate-500">ยังไม่มีประวัติซีซั่น</div>
             )}
           </div>
         ) : (
@@ -896,55 +799,42 @@ export default function ScrimManagementApp() {
                 <tbody className="divide-y divide-slate-800/60">
                   {teams.map((team, index) => {
                     const rank = index + 1;
-
+                    
                     let rowHighlightClass = '';
                     let badgeText = '';
 
                     if (activeTab === 'd1') {
                       if (rank >= 13) {
-                        rowHighlightClass =
-                          'bg-red-950/40 border-l-4 border-red-500';
+                        rowHighlightClass = 'bg-red-950/40 border-l-4 border-red-500';
                         badgeText = ' 📉';
                       }
                     } else if (activeTab === 'd2') {
                       if (rank <= 4) {
-                        rowHighlightClass =
-                          'bg-emerald-950/40 border-l-4 border-emerald-500';
+                        rowHighlightClass = 'bg-emerald-950/40 border-l-4 border-emerald-500';
                         badgeText = ' 📈';
                       }
                     }
 
                     return (
-                      <tr
-                        key={team.id}
+                      <tr 
+                        key={team.id} 
                         className={`hover:bg-slate-800/40 transition-colors ${rowHighlightClass}`}
                       >
-                        <td className="py-3 px-3 font-bold text-amber-400">
-                          #{rank}
-                        </td>
+                        <td className="py-3 px-3 font-bold text-amber-400">#{rank}</td>
                         <td className="py-3 px-3 font-semibold text-slate-200">
                           <button
-                            onClick={() =>
-                              handleOpenTeamHistoryModal(team.team_name)
-                            }
+                            onClick={() => handleOpenTeamHistoryModal(team.team_name)}
                             className="hover:text-amber-400 hover:underline decoration-dotted text-left font-bold"
                           >
                             {team.team_name}
                           </button>
                           {badgeText}
                         </td>
-                        <td className="py-3 px-2 text-center text-slate-300 font-bold">
-                          {team.wwcd || 0}
-                        </td>
+                        <td className="py-3 px-2 text-center text-slate-300 font-bold">{team.wwcd || 0}</td>
                         <td className="py-3 px-3 text-right font-extrabold text-amber-400 flex items-center justify-end gap-3">
                           <span>{team.total_points || 0}</span>
                           {isAdmin && (
-                            <button
-                              onClick={() =>
-                                handleDeleteTeam(team.id, team.team_name)
-                              }
-                              className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded"
-                            >
+                            <button onClick={() => handleDeleteTeam(team.id, team.team_name)} className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">
                               🗑️ ลบ
                             </button>
                           )}
@@ -966,11 +856,9 @@ export default function ScrimManagementApp() {
             <div className="flex justify-between items-center border-b border-slate-800 pb-4">
               <div>
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                  <span>📜</span> ห้องซ้อมที่สังกัดเคยลง:
+                  <span>📜</span> ประวัติการแข่งขันย้อนหลัง:
                 </span>
-                <h3 className="text-xl font-extrabold text-slate-100 mt-0.5">
-                  {modalTeamName}
-                </h3>
+                <h3 className="text-xl font-extrabold text-slate-100 mt-0.5">{modalTeamName}</h3>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -982,13 +870,11 @@ export default function ScrimManagementApp() {
 
             <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-1">
               {modalLoading ? (
-                <div className="text-center py-12 text-slate-400">
-                  กำลังดึงข้อมูลประวัติ...
-                </div>
+                <div className="text-center py-12 text-slate-400">กำลังดึงข้อมูลประวัติ...</div>
               ) : teamHistoryResult.length > 0 ? (
                 teamHistoryResult.map((res, idx) => (
-                  <div
-                    key={idx}
+                  <div 
+                    key={idx} 
                     className="bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-xl p-4 flex items-center justify-between shadow-md transition-all"
                   >
                     <div className="flex items-center gap-3">
@@ -998,13 +884,7 @@ export default function ScrimManagementApp() {
                           {res.season_name}
                         </div>
                         <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                          <span
-                            className={
-                              res.division === 'Division 1'
-                                ? 'text-amber-400 font-semibold'
-                                : 'text-emerald-400 font-semibold'
-                            }
-                          >
+                          <span className={res.division === 'Division 1' ? 'text-amber-400 font-semibold' : 'text-emerald-400 font-semibold'}>
                             {res.division}
                           </span>
                           <span>•</span>
