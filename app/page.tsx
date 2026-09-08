@@ -3,6 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
+// 🏆 ตารางแปลงอันดับ (Place) เป็นคะแนนอันดับ (Placement Points) อัตโนมัติ
+const placementPointsMap: Record<number, number> = {
+  1: 10,
+  2: 6,
+  3: 5,
+  4: 4,
+  5: 3,
+  6: 2,
+  7: 1,
+  8: 1,
+  // 9th ถึง 16th ได้ 0 แต้ม
+};
+
 export default function ScrimManagementApp() {
   const [activeTab, setActiveTab] = useState<'d1' | 'd2' | 'match' | 'history' | 'halloffame'>('d1');
   const [teams, setTeams] = useState<any[]>([]);
@@ -25,14 +38,19 @@ export default function ScrimManagementApp() {
   // State สำหรับทำเนียบทีมภาพรวมทั้งหมด
   const [hallOfFameData, setHallOfFameData] = useState<any[]>([]);
 
-  // State สำหรับช่องกรอกคะแนนรายแมตช์
+  // State สำหรับช่องกรอกคะแนนรายแมตช์ (เปลี่ยนจากกรอกแต้มเอง เป็นกรอก "อันดับ Place" และ "คิล Kills")
   const [gameDivision, setGameDivision] = useState<'1' | '2'>('1');
   const [gameNumber, setGameNumber] = useState('1');
   const [mapName, setMapName] = useState('Erangel');
   const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [placePoints, setPlacePoints] = useState('');
-  const [killPoints, setKillPoints] = useState('');
+  const [teamPlace, setTeamPlace] = useState<number | ''>(''); // กรอกอันดับ (1-16)
+  const [teamKills, setTeamKills] = useState<number | ''>(''); // กรอกจำนวนคิล
   const [isWWCD, setIsWWCD] = useState(false);
+
+  // คำนวณแต้มพรีวิวสดๆ หน้าฟอร์มแอดมิน
+  const calculatedPlacePts = typeof teamPlace === 'number' ? (placementPointsMap[teamPlace] || 0) : 0;
+  const calculatedKillPts = typeof teamKills === 'number' ? teamKills : 0;
+  const previewTotalMatchPoints = teamPlace !== '' ? calculatedPlacePts + calculatedKillPts : 0;
 
   const [seasonNote, setSeasonNote] = useState('');
 
@@ -56,7 +74,8 @@ export default function ScrimManagementApp() {
 
       if (error) console.error('Error fetching teams:', error);
       else if (data) {
-        setTeams(data);
+        // จัดเรียงตามกฎ Tiebreaker ทันทีที่ดึงข้อมูล
+        setTeams(sortLeaderboard(data));
       }
     }
 
@@ -71,6 +90,26 @@ export default function ScrimManagementApp() {
     if (logsData) setMatchLogs(logsData);
 
     setLoading(false);
+  };
+
+  // ⚖️ ฟังก์ชันจัดอันดับตามกฎ Tiebreaker ทั้ง 4 ข้อ
+  const sortLeaderboard = (teamList: any[]) => {
+    return [...teamList].sort((a, b) => {
+      // 1. คะแนนรวมมากที่สุด
+      if ((b.total_points || 0) !== (a.total_points || 0)) {
+        return (b.total_points || 0) - (a.total_points || 0);
+      }
+      // 2. จำนวน WWCD มากที่สุด
+      if ((b.wwcd || 0) !== (a.wwcd || 0)) {
+        return (b.wwcd || 0) - (a.wwcd || 0);
+      }
+      // 3. คะแนนอันดับรวม (Placement Points) มากที่สุด
+      if ((b.place_points || 0) !== (a.place_points || 0)) {
+        return (b.place_points || 0) - (a.place_points || 0);
+      }
+      // 4. คะแนนคิลรวม (Elimination Points) มากที่สุด
+      return (b.kill_points || 0) - (a.kill_points || 0);
+    });
   };
 
   const fetchHistory = async () => {
@@ -143,13 +182,15 @@ export default function ScrimManagementApp() {
           l.game_number.toString() === gameNumber.toString()
       );
       if (existingLog) {
-        setPlacePoints(existingLog.place_points.toString());
-        setKillPoints(existingLog.kill_points.toString());
+        // แปลงกลับจากแต้มอันดับเป็นอันดับ (Place) เพื่อให้แอดมินแก้ไขได้ง่าย
+        // หรือถ้าใน match_logs เก็บค่า place ไว้โดยตรงจะสะดวกยิ่งขึ้น
+        setTeamPlace(existingLog.place ?? '');
+        setTeamKills(existingLog.kill_points ?? '');
         setIsWWCD(existingLog.wwcd === 1);
         setMapName(existingLog.map_name || 'Erangel');
       } else {
-        setPlacePoints('');
-        setKillPoints('');
+        setTeamPlace('');
+        setTeamKills('');
         setIsWWCD(false);
       }
     }
@@ -215,7 +256,7 @@ export default function ScrimManagementApp() {
       alert('🔒 ออกจากระบบแอดมินแล้ว');
     } else {
       const pass = prompt('🔑 กรุณากรอกรหัสผ่านแอดมิน:');
-      if (pass === 'coachway123') { // <-- เปลี่ยนรหัสผ่านตรงนี้ได้ตามต้องการ
+      if (pass === 'coachway123') {
         setIsAdmin(true);
         alert('🔓 เข้าสู่ระบบแอดมินสำเร็จ!');
       } else if (pass !== null) {
@@ -281,13 +322,18 @@ export default function ScrimManagementApp() {
     }
   };
 
+  // 🚀 บันทึกคะแนนโดยระบบแปลง "อันดับ" เป็น "คะแนนอันดับ" ให้อัตโนมัติ
   const handleSaveMatchScore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
-    if (!selectedTeamId) return;
+    if (!selectedTeamId || teamPlace === '') return;
 
-    const pPoints = parseInt(placePoints) || 0;
-    const kPoints = parseInt(killPoints) || 0;
+    const placeVal = Number(teamPlace);
+    const killsVal = Number(teamKills) || 0;
+    
+    // แปลงอันดับเป็นแต้มตามตารางเรทคะแนน
+    const pPoints = placementPointsMap[placeVal] || 0;
+    const kPoints = killsVal; // 1 คิล = 1 แต้ม
     const newMatchTotal = pPoints + kPoints;
 
     setProcessing(true);
@@ -329,7 +375,13 @@ export default function ScrimManagementApp() {
 
         await supabase
           .from('match_logs')
-          .update({ map_name: mapName, place_points: pPoints, kill_points: kPoints, wwcd: isWWCD ? 1 : 0 })
+          .update({ 
+            map_name: mapName, 
+            place: placeVal, 
+            place_points: pPoints, 
+            kill_points: kPoints, 
+            wwcd: isWWCD ? 1 : 0 
+          })
           .eq('id', existingLog.id);
       } else {
         updatedWWCD = isWWCD ? updatedWWCD + 1 : updatedWWCD;
@@ -343,6 +395,7 @@ export default function ScrimManagementApp() {
             division_id: parseInt(gameDivision),
             game_number: parseInt(gameNumber),
             map_name: mapName,
+            place: placeVal,
             place_points: pPoints,
             kill_points: kPoints,
             wwcd: isWWCD ? 1 : 0,
@@ -352,10 +405,15 @@ export default function ScrimManagementApp() {
 
       await supabase
         .from('teams')
-        .update({ wwcd: updatedWWCD, place_points: updatedPlace, kill_points: updatedKill, total_points: updatedTotal })
+        .update({ 
+          wwcd: updatedWWCD, 
+          place_points: updatedPlace, 
+          kill_points: updatedKill, 
+          total_points: updatedTotal 
+        })
         .eq('id', selectedTeamId);
 
-      alert(`✅ บันทึกคะแนนเรียบร้อย!`);
+      alert(`✅ บันทึกคะแนนสำเร็จ! (อันดับ ${placeVal} ได้รับ ${pPoints} แต้ม + คิล ${kPoints} แต้ม)`);
       await fetchTeamsAndLogs();
     } catch (err) {
       console.error(err);
@@ -378,8 +436,8 @@ export default function ScrimManagementApp() {
 
       if (!d1Data || !d2Data) return;
 
-      const d1Full = d1Data.slice(0, 16);
-      const d2Full = d2Data.slice(0, 20);
+      const d1Full = sortLeaderboard(d1Data).slice(0, 16);
+      const d2Full = sortLeaderboard(d2Data).slice(0, 20);
 
       await supabase.from('season_history').insert([
         { season_name: seasonNote, d1_snapshot: d1Full, d2_snapshot: d2Full },
@@ -542,7 +600,7 @@ export default function ScrimManagementApp() {
         {activeTab === 'match' && isAdmin ? (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
             <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-              <span>📝</span> บันทึกคะแนนการแข่งขันรายแมตช์ (Admin Only)
+              <span>📝</span> บันทึกคะแนนด้วยระบบคำนวณอัตโนมัติ (Admin Only)
             </h2>
             <form onSubmit={handleSaveMatchScore} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -602,25 +660,42 @@ export default function ScrimManagementApp() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">คะแนนอันดับ (Place)</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">อันดับที่ได้ (Place 1-16)</label>
                   <input
                     type="number"
-                    value={placePoints}
-                    onChange={(e) => setPlacePoints(e.target.value)}
+                    min="1"
+                    max="16"
+                    value={teamPlace}
+                    onChange={(e) => setTeamPlace(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="เช่น 1, 2, 3..."
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
                     required
                   />
+                  <p className="text-[11px] text-amber-400/80 mt-1">
+                    👉 แปลงเป็นคะแนนอันดับให้อัตโนมัติ: <span className="font-bold">{calculatedPlacePts} แต้ม</span>
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">คะแนนคิล (Kill)</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">จำนวนคิล (Kills)</label>
                   <input
                     type="number"
-                    value={killPoints}
-                    onChange={(e) => setKillPoints(e.target.value)}
+                    min="0"
+                    value={teamKills}
+                    onChange={(e) => setTeamKills(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="เช่น 5"
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
                     required
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    👉 แต้มคิล (1 คิล = 1 แต้ม): <span className="font-bold text-slate-200">{calculatedKillPts} แต้ม</span>
+                  </p>
                 </div>
+              </div>
+
+              {/* ช่องแสดงพรีวิวคะแนนรวมแมตช์นี้แบบเรียลไทม์ */}
+              <div className="bg-slate-950 border border-amber-500/30 rounded-xl p-4 flex justify-between items-center">
+                <span className="text-sm text-slate-300 font-medium">คะแนนรวมในแมตช์นี้ (คำนวณออโต้):</span>
+                <span className="text-lg font-extrabold text-amber-400">{previewTotalMatchPoints} แต้ม</span>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
@@ -738,110 +813,78 @@ export default function ScrimManagementApp() {
                         </table>
                       </div>
                     </div>
-
-                    {/* Division 2 Snapshot */}
-                    <div className="space-y-3 pt-4 border-t border-slate-800/80">
-                      <h4 className="text-sm font-bold text-emerald-400">Division 2 (Snapshot)</h4>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-slate-800 text-slate-400 text-xs bg-slate-950/40">
-                              <th className="py-2 px-3">อันดับ</th>
-                              <th className="py-2 px-3">ชื่อทีม</th>
-                              <th className="py-2 px-3 text-center">WWCD</th>
-                              <th className="py-2 px-3 text-right">คะแนนรวม</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60">
-                            {selectedSeason.d2_snapshot?.map((team: any, i: number) => (
-                              <tr key={i} className={i < 4 ? 'bg-emerald-950/40' : ''}>
-                                <td className="py-2 px-3 font-bold text-emerald-400">#{i + 1}</td>
-                                <td className="py-2 px-3 text-slate-200">
-                                  <button
-                                    onClick={() => handleOpenTeamHistoryModal(team.team_name)}
-                                    className="hover:text-amber-400 hover:underline decoration-dotted text-left font-semibold"
-                                  >
-                                    {team.team_name}
-                                  </button>
-                                  {i < 4 ? ' 📈' : ''}
-                                </td>
-                                <td className="py-2 px-3 text-center">{team.wwcd || 0}</td>
-                                <td className="py-2 px-3 text-right font-bold text-emerald-400">{team.total_points || 0}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
                   </div>
                 )}
               </>
             ) : (
-              <div className="text-center py-12 text-slate-500">ยังไม่มีประวัติซีซั่น</div>
+              <div className="text-center py-12 text-slate-500">ยังไม่มีประวัติการแข่งขันย้อนหลัง</div>
             )}
           </div>
         ) : (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-xl font-bold text-amber-400 mb-4">
-              🏆 คะแนนรวม {activeTab === 'd1' ? 'Division 1' : 'Division 2'}
-            </h2>
+          /* ตารางคะแนนหลัก Division 1 / Division 2 */
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-amber-400">
+                {activeTab === 'd1' ? 'Division 1 Leaderboard' : 'Division 2 Leaderboard'}
+              </h2>
+            </div>
+            
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-800 text-slate-400 text-xs bg-slate-950/40">
-                    <th className="py-3 px-3">อันดับ</th>
-                    <th className="py-3 px-3">ชื่อทีม</th>
-                    <th className="py-3 px-2 text-center">WWCD</th>
-                    <th className="py-3 px-3 text-right">คะแนนรวม</th>
+                    <th className="py-3 px-4">#</th>
+                    <th className="py-3 px-4">ชื่อทีม</th>
+                    <th className="py-3 px-4 text-center">WWCD</th>
+                    <th className="py-3 px-4 text-center">Placement Pts</th>
+                    <th className="py-3 px-4 text-center">Elimination Pts</th>
+                    <th className="py-3 px-4 text-right font-bold text-amber-400">Total Points</th>
+                    {isAdmin && <th className="py-3 px-4 text-center">จัดการ</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {teams.map((team, index) => {
-                    const rank = index + 1;
-                    
-                    let rowHighlightClass = '';
-                    let badgeText = '';
-
-                    if (activeTab === 'd1') {
-                      if (rank >= 13) {
-                        rowHighlightClass = 'bg-red-950/40 border-l-4 border-red-500';
-                        badgeText = ' 📉';
-                      }
-                    } else if (activeTab === 'd2') {
-                      if (rank <= 4) {
-                        rowHighlightClass = 'bg-emerald-950/40 border-l-4 border-emerald-500';
-                        badgeText = ' 📈';
-                      }
-                    }
-
-                    return (
+                  {teams.length > 0 ? (
+                    teams.map((team, idx) => (
                       <tr 
                         key={team.id} 
-                        className={`hover:bg-slate-800/40 transition-colors ${rowHighlightClass}`}
+                        className={`hover:bg-slate-800/40 transition ${
+                          activeTab === 'd1' && idx >= 12 ? 'bg-red-950/20' : activeTab === 'd2' && idx < 4 ? 'bg-emerald-950/20' : ''
+                        }`}
                       >
-                        <td className="py-3 px-3 font-bold text-amber-400">#{rank}</td>
-                        <td className="py-3 px-3 font-semibold text-slate-200">
+                        <td className="py-3 px-4 font-bold text-amber-400">#{idx + 1}</td>
+                        <td className="py-3 px-4 font-medium text-slate-200">
                           <button
                             onClick={() => handleOpenTeamHistoryModal(team.team_name)}
-                            className="hover:text-amber-400 hover:underline decoration-dotted text-left font-bold"
+                            className="hover:text-amber-400 hover:underline decoration-dotted text-left"
                           >
                             {team.team_name}
                           </button>
-                          {badgeText}
+                          {activeTab === 'd1' && idx >= 12 && <span className="ml-2 text-xs text-red-400 font-semibold">(โซนตกชั้น)</span>}
+                          {activeTab === 'd2' && idx < 4 && <span className="ml-2 text-xs text-emerald-400 font-semibold">(โซนเลื่อนชั้น)</span>}
                         </td>
-                        <td className="py-3 px-2 text-center text-slate-300 font-bold">{team.wwcd || 0}</td>
-                        <td className="py-3 px-3 text-right font-extrabold text-amber-400 flex items-center justify-end gap-3">
-                          <span>{team.total_points || 0}</span>
-                          {isAdmin && (
-                            <button onClick={() => handleDeleteTeam(team.id, team.team_name)} className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded">
-                              🗑️ ลบ
+                        <td className="py-3 px-4 text-center font-semibold">{team.wwcd || 0}</td>
+                        <td className="py-3 px-4 text-center text-slate-300">{team.place_points || 0}</td>
+                        <td className="py-3 px-4 text-center text-slate-300">{team.kill_points || 0}</td>
+                        <td className="py-3 px-4 text-right font-extrabold text-amber-400 text-base">{team.total_points || 0}</td>
+                        {isAdmin && (
+                          <td className="py-3 px-4 text-center">
+                            <button
+                              onClick={() => handleDeleteTeam(team.id, team.team_name)}
+                              className="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-500/10 border border-red-500/20"
+                            >
+                              ลบ
                             </button>
-                          )}
-                        </td>
+                          </td>
+                        )}
                       </tr>
-                    );
-                  })}
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={isAdmin ? 7 : 6} className="text-center py-12 text-slate-500">
+                        ยังไม่มีข้อมูลทีมในดิวิชันนี้
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -849,72 +892,39 @@ export default function ScrimManagementApp() {
         )}
       </div>
 
-      {/* Modal ป็อปอัพประวัติทีมสไตล์การ์ดรายการ */}
+      {/* Modal ประวัติทีมย้อนหลัง */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-xl space-y-6 relative">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                  <span>📜</span> ประวัติการแข่งขันย้อนหลัง:
-                </span>
-                <h3 className="text-xl font-extrabold text-slate-100 mt-0.5">{modalTeamName}</h3>
-              </div>
-              <button
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-amber-400">ประวัติการแข่งขัน: {modalTeamName}</h3>
+              <button 
                 onClick={() => setIsModalOpen(false)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-300 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition"
+                className="text-slate-400 hover:text-slate-200 font-bold px-2 py-1 bg-slate-800 rounded-lg text-xs"
               >
-                ✕
+                ✕ ปิด
               </button>
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-1">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               {modalLoading ? (
-                <div className="text-center py-12 text-slate-400">กำลังดึงข้อมูลประวัติ...</div>
+                <div className="text-center py-8 text-slate-500">กำลังโหลดข้อมูล...</div>
               ) : teamHistoryResult.length > 0 ? (
-                teamHistoryResult.map((res, idx) => (
-                  <div 
-                    key={idx} 
-                    className="bg-slate-950 border border-slate-800/80 hover:border-slate-700 rounded-xl p-4 flex items-center justify-between shadow-md transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">🏠</span>
-                      <div>
-                        <div className="font-bold text-slate-200 text-sm md:text-base">
-                          {res.season_name}
-                        </div>
-                        <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                          <span className={res.division === 'Division 1' ? 'text-amber-400 font-semibold' : 'text-emerald-400 font-semibold'}>
-                            {res.division}
-                          </span>
-                          <span>•</span>
-                          <span>อันดับที่ #{res.rank}</span>
-                        </div>
-                      </div>
+                teamHistoryResult.map((res, i) => (
+                  <div key={i} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-sm">
+                    <div>
+                      <div className="font-bold text-slate-200">{res.season_name}</div>
+                      <div className="text-xs text-slate-400">{res.division} • อันดับที่ #{res.rank}</div>
                     </div>
-
                     <div className="text-right">
-                      <span className="font-extrabold text-amber-400 text-base md:text-lg">
-                        {res.total_points || 0}
-                      </span>
-                      <span className="text-xs text-slate-400 ml-1">แต้ม</span>
+                      <div className="font-extrabold text-amber-400">{res.total_points || 0} คะแนน</div>
+                      <div className="text-xs text-slate-400">WWCD: {res.wwcd || 0}</div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-slate-500">
-                  ยังไม่มีประวัติการแข่งขันของทีมนี้ในระบบ
-                </div>
+                <div className="text-center py-8 text-slate-500">ไม่พบประวัติการแข่งขันย้อนหลังของทีมนี้</div>
               )}
-            </div>
-
-            <div className="pt-2">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-sm transition"
-              >
-                ปิดหน้าต่าง
-              </button>
             </div>
           </div>
         </div>
