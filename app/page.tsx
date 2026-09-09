@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
-// 🏆 ตารางแปลงอันดับ (Place) เป็นคะแนนอันดับ (Placement Points) อัตโนมัติ
 const placementPointsMap: Record<number, number> = {
   1: 10,
   2: 6,
@@ -13,12 +12,12 @@ const placementPointsMap: Record<number, number> = {
   6: 2,
   7: 1,
   8: 1,
-  // 9th ถึง 16th ได้ 0 แต้ม
 };
 
 export default function ScrimManagementApp() {
-  const [activeTab, setActiveTab] = useState<'d1' | 'd2' | 'match' | 'history' | 'halloffame'>('d1');
-  const [teams, setTeams] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'latestseason' | 'match' | 'dropmap' | 'history' | 'halloffame'>('latestseason');
+  const [teamsD1, setTeamsD1] = useState<any[]>([]);
+  const [teamsD2, setTeamsD2] = useState<any[]>([]);
   const [allTeams, setAllTeams] = useState<any[]>([]);
   const [matchLogs, setMatchLogs] = useState<any[]>([]);
   const [historySeasons, setHistorySeasons] = useState<any[]>([]);
@@ -26,57 +25,74 @@ export default function ScrimManagementApp() {
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // State สำหรับระบบแอดมิน
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // State สำหรับ Modal ประวัติทีมย้อนหลัง
+  const [dropMapImages, setDropMapImages] = useState<any[]>([]);
+  const [selectedDropMatch, setSelectedDropMatch] = useState<number>(1);
+  const [selectedDropSeasonId, setSelectedDropSeasonId] = useState<number | null>(null);
+  const [uploadMatchNumber, setUploadMatchNumber] = useState<number>(1);
+  const [uploadMapName, setUploadMapName] = useState<string>('Erangel');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [isTeamDetailModalOpen, setIsTeamDetailModalOpen] = useState(false);
+  const [selectedTeamDetail, setSelectedTeamDetail] = useState<any>(null);
+  const [teamMatchLogs, setTeamMatchLogs] = useState<any[]>([]);
+
+  const [isHistoryTeamModalOpen, setIsHistoryTeamModalOpen] = useState(false);
+  const [selectedHistoryTeam, setSelectedHistoryTeam] = useState<any>(null);
+  const [historyTeamDivisionName, setHistoryTeamDivisionName] = useState<string>('');
+  const [historyTeamMatchLogs, setHistoryTeamMatchLogs] = useState<any[]>([]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTeamName, setModalTeamName] = useState('');
   const [teamHistoryResult, setTeamHistoryResult] = useState<any[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
 
-  // State สำหรับทำเนียบทีมภาพรวมทั้งหมด
   const [hallOfFameData, setHallOfFameData] = useState<any[]>([]);
+  const [hallOfFameSearch, setHallOfFameSearch] = useState('');
 
-  // State สำหรับช่องกรอกคะแนนรายแมตช์ (เปลี่ยนจากกรอกแต้มเอง เป็นกรอก "อันดับ Place" และ "คิล Kills")
+  const [uploadingLogoTeamName, setUploadingLogoTeamName] = useState<string | null>(null);
+  const [teamLogoFile, setTeamLogoFile] = useState<File | null>(null);
+
   const [gameDivision, setGameDivision] = useState<'1' | '2'>('1');
   const [gameNumber, setGameNumber] = useState('1');
   const [mapName, setMapName] = useState('Erangel');
   const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [teamPlace, setTeamPlace] = useState<number | ''>(''); // กรอกอันดับ (1-16)
-  const [teamKills, setTeamKills] = useState<number | ''>(''); // กรอกจำนวนคิล
+  const [teamPlace, setTeamPlace] = useState<number | ''>('');
+  const [teamKills, setTeamKills] = useState<number | ''>('');
   const [isWWCD, setIsWWCD] = useState(false);
 
-  // คำนวณแต้มพรีวิวสดๆ หน้าฟอร์มแอดมิน
   const calculatedPlacePts = typeof teamPlace === 'number' ? (placementPointsMap[teamPlace] || 0) : 0;
   const calculatedKillPts = typeof teamKills === 'number' ? teamKills : 0;
   const previewTotalMatchPoints = teamPlace !== '' ? calculatedPlacePts + calculatedKillPts : 0;
 
   const [seasonNote, setSeasonNote] = useState('');
-
-  // State สำหรับฟอร์มเพิ่มทีมใหม่
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamDivision, setNewTeamDivision] = useState<'1' | '2'>('2');
 
   const fetchTeamsAndLogs = async () => {
     setLoading(true);
-    if (activeTab === 'history') {
-      await fetchHistory();
-    } else if (activeTab === 'halloffame') {
-      await fetchHallOfFame();
-    } else if (activeTab !== 'match') {
-      const divId = activeTab === 'd1' ? 1 : 2;
-      const { data, error } = await supabase
+    if (activeTab === 'latestseason') {
+      const { data: d1Data, error: errD1 } = await supabase
         .from('teams')
         .select('*')
-        .eq('division_id', divId)
-        .order('total_points', { ascending: false });
+        .eq('division_id', 1);
 
-      if (error) console.error('Error fetching teams:', error);
-      else if (data) {
-        // จัดเรียงตามกฎ Tiebreaker ทันทีที่ดึงข้อมูล
-        setTeams(sortLeaderboard(data));
-      }
+      const { data: d2Data, error: errD2 } = await supabase
+        .from('teams')
+        .select('*')
+        .eq('division_id', 2);
+
+      if (!errD1 && d1Data) setTeamsD1(sortLeaderboard(d1Data));
+      if (!errD2 && d2Data) setTeamsD2(sortLeaderboard(d2Data));
+    } else if (activeTab === 'history') {
+      await fetchHistory();
+    } else if (activeTab === 'halloffame') {
+      await fetchHistory();
+      await fetchHallOfFame();
+    } else if (activeTab === 'dropmap') {
+      await fetchHistory();
+      await fetchDropMapImages();
     }
 
     const { data: allData } = await supabase
@@ -92,22 +108,30 @@ export default function ScrimManagementApp() {
     setLoading(false);
   };
 
-  // ⚖️ ฟังก์ชันจัดอันดับตามกฎ Tiebreaker ทั้ง 4 ข้อ
+  const fetchDropMapImages = async () => {
+    const { data, error } = await supabase
+      .from('match_map_images')
+      .select('*')
+      .order('match_number', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching drop map images:', error);
+    } else if (data) {
+      setDropMapImages(data);
+    }
+  };
+
   const sortLeaderboard = (teamList: any[]) => {
     return [...teamList].sort((a, b) => {
-      // 1. คะแนนรวมมากที่สุด
       if ((b.total_points || 0) !== (a.total_points || 0)) {
         return (b.total_points || 0) - (a.total_points || 0);
       }
-      // 2. จำนวน WWCD มากที่สุด
       if ((b.wwcd || 0) !== (a.wwcd || 0)) {
         return (b.wwcd || 0) - (a.wwcd || 0);
       }
-      // 3. คะแนนอันดับรวม (Placement Points) มากที่สุด
       if ((b.place_points || 0) !== (a.place_points || 0)) {
         return (b.place_points || 0) - (a.place_points || 0);
       }
-      // 4. คะแนนคิลรวม (Elimination Points) มากที่สุด
       return (b.kill_points || 0) - (a.kill_points || 0);
     });
   };
@@ -125,6 +149,9 @@ export default function ScrimManagementApp() {
       if (data.length > 0 && !selectedSeason) {
         setSelectedSeason(data[0]);
       }
+      if (data.length > 0 && !selectedDropSeasonId) {
+        setSelectedDropSeasonId(data[0].id);
+      }
     }
   };
 
@@ -134,40 +161,116 @@ export default function ScrimManagementApp() {
       .select('*')
       .order('created_at', { ascending: false });
 
+    const { data: teamsData } = await supabase.from('teams').select('*');
+
     if (!historyData) {
       setHallOfFameData([]);
       return;
     }
 
-    const teamMap: { [key: string]: { team_name: string; seasons: string[] } } = {};
+    const teamMap: { [key: string]: { 
+      team_name: string; 
+      seasonsCount: number; 
+      d1Titles: number; 
+      totalWWCD: number; 
+      totalPlacePoints: number;
+      totalKillPoints: number;
+      totalPointsAllTime: number;
+      seasonsList: string[];
+      logo_url?: string;
+    } } = {};
 
     historyData.forEach((season) => {
       const seasonName = season.season_name;
 
-      season.d1_snapshot?.forEach((t: any) => {
+      season.d1_snapshot?.forEach((t: any, idx: number) => {
         const name = t.team_name.trim();
         const key = name.toLowerCase();
         if (!teamMap[key]) {
-          teamMap[key] = { team_name: name, seasons: [] };
+          const foundTeamInDb = teamsData?.find(dbT => dbT.team_name.toLowerCase() === key);
+          teamMap[key] = { 
+            team_name: name, 
+            seasonsCount: 0, 
+            d1Titles: 0, 
+            totalWWCD: 0, 
+            totalPlacePoints: 0,
+            totalKillPoints: 0,
+            totalPointsAllTime: 0,
+            seasonsList: [],
+            logo_url: t.logo_url || foundTeamInDb?.logo_url || ''
+          };
         }
-        if (!teamMap[key].seasons.includes(seasonName)) {
-          teamMap[key].seasons.push(seasonName);
+        if (!teamMap[key].seasonsList.includes(seasonName)) {
+          teamMap[key].seasonsList.push(seasonName);
+          teamMap[key].seasonsCount += 1;
         }
+        if (idx === 0) {
+          teamMap[key].d1Titles += 1;
+        }
+        teamMap[key].totalWWCD += (t.wwcd || 0);
+        teamMap[key].totalPlacePoints += (t.place_points || 0);
+        teamMap[key].totalKillPoints += (t.kill_points || 0);
+        teamMap[key].totalPointsAllTime += (t.total_points || 0);
+        if (!teamMap[key].logo_url && t.logo_url) teamMap[key].logo_url = t.logo_url;
       });
 
       season.d2_snapshot?.forEach((t: any) => {
         const name = t.team_name.trim();
         const key = name.toLowerCase();
         if (!teamMap[key]) {
-          teamMap[key] = { team_name: name, seasons: [] };
+          const foundTeamInDb = teamsData?.find(dbT => dbT.team_name.toLowerCase() === key);
+          teamMap[key] = { 
+            team_name: name, 
+            seasonsCount: 0, 
+            d1Titles: 0, 
+            totalWWCD: 0, 
+            totalPlacePoints: 0,
+            totalKillPoints: 0,
+            totalPointsAllTime: 0,
+            seasonsList: [],
+            logo_url: t.logo_url || foundTeamInDb?.logo_url || ''
+          };
         }
-        if (!teamMap[key].seasons.includes(seasonName)) {
-          teamMap[key].seasons.push(seasonName);
+        if (!teamMap[key].seasonsList.includes(seasonName)) {
+          teamMap[key].seasonsList.push(seasonName);
+          teamMap[key].seasonsCount += 1;
         }
+        teamMap[key].totalWWCD += (t.wwcd || 0);
+        teamMap[key].totalPlacePoints += (t.place_points || 0);
+        teamMap[key].totalKillPoints += (t.kill_points || 0);
+        teamMap[key].totalPointsAllTime += (t.total_points || 0);
+        if (!teamMap[key].logo_url && t.logo_url) teamMap[key].logo_url = t.logo_url;
       });
     });
 
-    setHallOfFameData(Object.values(teamMap));
+    teamsData?.forEach((dbT) => {
+      const name = dbT.team_name.trim();
+      const key = name.toLowerCase();
+      if (!teamMap[key]) {
+        teamMap[key] = {
+          team_name: name,
+          seasonsCount: 0,
+          d1Titles: 0,
+          totalWWCD: dbT.wwcd || 0,
+          totalPlacePoints: dbT.place_points || 0,
+          totalKillPoints: dbT.kill_points || 0,
+          totalPointsAllTime: dbT.total_points || 0,
+          seasonsList: ['Current'],
+          logo_url: dbT.logo_url || ''
+        };
+      } else {
+        if (dbT.logo_url && !teamMap[key].logo_url) {
+          teamMap[key].logo_url = dbT.logo_url;
+        }
+      }
+    });
+
+    const formattedData = Object.values(teamMap).sort((a, b) => {
+      if (b.d1Titles !== a.d1Titles) return b.d1Titles - a.d1Titles;
+      return b.totalPointsAllTime - a.totalPointsAllTime;
+    });
+
+    setHallOfFameData(formattedData);
   };
 
   useEffect(() => {
@@ -178,12 +281,10 @@ export default function ScrimManagementApp() {
     if (selectedTeamId && gameNumber) {
       const existingLog = matchLogs.find(
         (l) =>
-          l.team_id.toString() === selectedTeamId.toString() &&
-          l.game_number.toString() === gameNumber.toString()
+          String(l.team_id).trim() === String(selectedTeamId).trim() &&
+          String(l.game_number).trim() === String(gameNumber).trim()
       );
       if (existingLog) {
-        // แปลงกลับจากแต้มอันดับเป็นอันดับ (Place) เพื่อให้แอดมินแก้ไขได้ง่าย
-        // หรือถ้าใน match_logs เก็บค่า place ไว้โดยตรงจะสะดวกยิ่งขึ้น
         setTeamPlace(existingLog.place ?? '');
         setTeamKills(existingLog.kill_points ?? '');
         setIsWWCD(existingLog.wwcd === 1);
@@ -196,63 +297,68 @@ export default function ScrimManagementApp() {
     }
   }, [selectedTeamId, gameNumber, matchLogs]);
 
-  const handleOpenTeamHistoryModal = async (teamName: string) => {
-    setModalTeamName(teamName);
-    setIsModalOpen(true);
-    setModalLoading(true);
+  const handleUploadTeamLogo = async (teamName: string) => {
+    if (!isAdmin || !teamLogoFile) return;
 
-    const { data: historyData } = await supabase
-      .from('season_history')
-      .select('*')
-      .order('created_at', { ascending: false });
+    setProcessing(true);
+    try {
+      const fileExt = teamLogoFile.name.split('.').pop();
+      const fileName = `team_logo_${teamName.trim()}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('drop-maps')
+        .upload(fileName, teamLogoFile);
 
-    if (!historyData) {
-      setTeamHistoryResult([]);
-      setModalLoading(false);
-      return;
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('drop-maps')
+        .getPublicUrl(fileName);
+
+      const logoUrl = publicUrlData.publicUrl;
+
+      await supabase
+        .from('teams')
+        .update({ logo_url: logoUrl })
+        .eq('team_name', teamName);
+
+      alert(`✅ อัปโหลดโลโก้ทีม "${teamName}" สำเร็จ!`);
+      setTeamLogoFile(null);
+      setUploadingLogoTeamName(null);
+      await fetchHallOfFame();
+    } catch (err: any) {
+      console.error('Error uploading team logo:', err);
+      alert('เกิดข้อผิดพลาดในการอัปโหลดโลโก้: ' + (err.message || 'โปรดตรวจสอบสิทธิ์ Storage'));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleOpenTeamDetailModal = (team: any) => {
+    setSelectedTeamDetail(team);
+    const logs = matchLogs
+      .filter((l) => String(l.team_id).trim() === String(team.id).trim())
+      .sort((a, b) => a.game_number - b.game_number);
+    setTeamMatchLogs(logs);
+    setIsTeamDetailModalOpen(true);
+  };
+
+  const handleOpenHistoryTeamModal = (team: any, divisionName: string) => {
+    setSelectedHistoryTeam(team);
+    setHistoryTeamDivisionName(divisionName);
+
+    if (team.team_match_logs && Array.isArray(team.team_match_logs)) {
+      setHistoryTeamMatchLogs(team.team_match_logs);
+    } else {
+      setHistoryTeamMatchLogs([]);
     }
 
-    const results: any[] = [];
-    const keyword = teamName.trim().toLowerCase();
-
-    historyData.forEach((season) => {
-      const foundInD1 = season.d1_snapshot?.find(
-        (t: any) => t.team_name.toLowerCase() === keyword
-      );
-      if (foundInD1) {
-        const rank = season.d1_snapshot.findIndex((t: any) => t.team_name.toLowerCase() === keyword) + 1;
-        results.push({
-          season_id: season.id,
-          season_name: season.season_name,
-          division: 'Division 1',
-          rank: rank,
-          ...foundInD1,
-        });
-      }
-
-      const foundInD2 = season.d2_snapshot?.find(
-        (t: any) => t.team_name.toLowerCase() === keyword
-      );
-      if (foundInD2) {
-        const rank = season.d2_snapshot.findIndex((t: any) => t.team_name.toLowerCase() === keyword) + 1;
-        results.push({
-          season_id: season.id,
-          season_name: season.season_name,
-          division: 'Division 2',
-          rank: rank,
-          ...foundInD2,
-        });
-      }
-    });
-
-    setTeamHistoryResult(results);
-    setModalLoading(false);
+    setIsHistoryTeamModalOpen(true);
   };
 
   const handleToggleAdmin = () => {
     if (isAdmin) {
       setIsAdmin(false);
-      if (activeTab === 'match') setActiveTab('d1');
+      if (activeTab === 'match') setActiveTab('latestseason');
       alert('🔒 ออกจากระบบแอดมินแล้ว');
     } else {
       const pass = prompt('🔑 กรุณากรอกรหัสผ่านแอดมิน:');
@@ -322,7 +428,6 @@ export default function ScrimManagementApp() {
     }
   };
 
-  // 🚀 บันทึกคะแนนโดยระบบแปลง "อันดับ" เป็น "คะแนนอันดับ" ให้อัตโนมัติ
   const handleSaveMatchScore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
@@ -330,18 +435,17 @@ export default function ScrimManagementApp() {
 
     const placeVal = Number(teamPlace);
     const killsVal = Number(teamKills) || 0;
-    
-    // แปลงอันดับเป็นแต้มตามตารางเรทคะแนน
+     
     const pPoints = placementPointsMap[placeVal] || 0;
-    const kPoints = killsVal; // 1 คิล = 1 แต้ม
+    const kPoints = killsVal;
     const newMatchTotal = pPoints + kPoints;
 
     setProcessing(true);
     try {
       const existingLog = matchLogs.find(
         (l) =>
-          l.team_id.toString() === selectedTeamId.toString() &&
-          l.game_number.toString() === gameNumber.toString()
+          String(l.team_id).trim() === String(selectedTeamId).trim() &&
+          String(l.game_number).trim() === String(gameNumber).trim()
       );
 
       const { data: teamData } = await supabase
@@ -422,6 +526,57 @@ export default function ScrimManagementApp() {
     }
   };
 
+  const handleUploadDropMapImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAdmin || !imageFile) {
+      alert('กรุณาเลือกไฟล์รูปภาพ');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `drop_season_${selectedDropSeasonId}_match_${uploadMatchNumber}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('drop-maps')
+        .upload(filePath, imageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('drop-maps')
+        .getPublicUrl(filePath);
+
+      const imageUrl = publicUrlData.publicUrl;
+
+      const { error: dbError } = await supabase
+        .from('match_map_images')
+        .upsert(
+          { 
+            season_id: selectedDropSeasonId,
+            match_number: uploadMatchNumber, 
+            map_name: uploadMapName, 
+            image_url: imageUrl,
+            updated_at: new Date()
+          },
+          { onConflict: 'season_id, match_number' }
+        );
+
+      if (dbError) throw dbError;
+
+      alert(`✅ อัพโหลดรูป Drop Map ซีซั่นนี้ (แมตช์ที่ ${uploadMatchNumber}) สำเร็จ!`);
+      setImageFile(null);
+      await fetchDropMapImages();
+    } catch (err: any) {
+      console.error('Error uploading drop map image:', err);
+      alert('เกิดข้อผิดพลาดในการอัพโหลด: ' + (err.message || 'โปรดตรวจสอบสิทธิ์ Storage Bucket'));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleNextSeasonTransition = async () => {
     if (!isAdmin || !seasonNote.trim()) {
       alert('กรุณากรอกชื่อซีซั่นก่อน');
@@ -433,15 +588,34 @@ export default function ScrimManagementApp() {
     try {
       const { data: d1Data } = await supabase.from('teams').select('*').eq('division_id', 1).order('total_points', { ascending: false });
       const { data: d2Data } = await supabase.from('teams').select('*').eq('division_id', 2).order('total_points', { ascending: false });
+      const { data: currentLogs } = await supabase.from('match_logs').select('*');
 
       if (!d1Data || !d2Data) return;
 
-      const d1Full = sortLeaderboard(d1Data).slice(0, 16);
-      const d2Full = sortLeaderboard(d2Data).slice(0, 20);
+      const mapLogsToTeam = (teamList: any[]) => {
+        return sortLeaderboard(teamList).map((team) => {
+          const tLogs = (currentLogs || [])
+            .filter((l) => String(l.team_id).trim() === String(team.id).trim())
+            .sort((a, b) => a.game_number - b.game_number);
+          return {
+            ...team,
+            team_match_logs: tLogs,
+          };
+        });
+      };
 
-      await supabase.from('season_history').insert([
+      const d1Full = mapLogsToTeam(d1Data).slice(0, 16);
+      const d2Full = mapLogsToTeam(d2Data).slice(0, 20);
+
+      const { error: insertErr } = await supabase.from('season_history').insert([
         { season_name: seasonNote, d1_snapshot: d1Full, d2_snapshot: d2Full },
       ]);
+
+      if (insertErr) {
+        alert('❌ เกิดข้อผิดพลาดในการบันทึกซีซั่น: ' + insertErr.message);
+        setProcessing(false);
+        return;
+      }
 
       const d1RemainingSafe = d1Full.slice(0, 12);
       const finalD1Relegated = d1Full.slice(12, 16);
@@ -456,11 +630,12 @@ export default function ScrimManagementApp() {
       }
 
       await supabase.from('match_logs').delete().neq('id', 0);
-      alert(`จบซีซั่นเรียบร้อย!`);
+      alert(`จบซีซั่นเรียบร้อย บันทึกข้อมูลลงซีซั่นสำเร็จ!`);
       setSeasonNote('');
       fetchTeamsAndLogs();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert('เกิดข้อผิดพลาด: ' + (err.message || 'โปรดลองใหม่อีกครั้ง'));
     } finally {
       setProcessing(false);
     }
@@ -496,66 +671,64 @@ export default function ScrimManagementApp() {
           </div>
         </header>
 
-        {/* Tabs */}
-        <div className="flex flex-col md:flex-row gap-3 justify-between items-center">
-          <div className="flex gap-2 w-full md:w-auto flex-wrap">
+        {/* Tabs - สลับที่ระหว่างซีซั่นทั้งหมด กับ Drop Map เรียบร้อย */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 w-full">
+          <button
+            onClick={() => setActiveTab('latestseason')}
+            className={`py-3 px-4 rounded-xl font-bold transition text-sm border flex-1 text-center ${
+              activeTab === 'latestseason'
+                ? 'bg-amber-500/10 border-amber-500 text-amber-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🔥 ซีซั่นล่าสุด (D1 & D2)
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`py-3 px-4 rounded-xl font-bold transition text-sm border flex-1 text-center ${
+              activeTab === 'history'
+                ? 'bg-blue-500/10 border-blue-400 text-blue-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            ซีซั่นทั้งหมด
+          </button>
+          <button
+            onClick={() => setActiveTab('halloffame')}
+            className={`py-3 px-4 rounded-xl font-bold transition text-sm border flex-1 text-center ${
+              activeTab === 'halloffame'
+                ? 'bg-purple-500/10 border-purple-500 text-purple-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Hall of Fame
+          </button>
+          <button
+            onClick={() => setActiveTab('dropmap')}
+            className={`py-3 px-4 rounded-xl font-bold transition text-sm border flex-1 text-center ${
+              activeTab === 'dropmap'
+                ? 'bg-sky-500/10 border-sky-500 text-sky-400'
+                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            🗺️ Drop Map
+          </button>
+          {isAdmin && (
             <button
-              onClick={() => setActiveTab('d1')}
-              className={`py-3 px-4 rounded-xl font-bold transition text-sm border ${
-                activeTab === 'd1'
-                  ? 'bg-amber-500/10 border-amber-500 text-amber-400'
+              onClick={() => setActiveTab('match')}
+              className={`py-3 px-4 rounded-xl font-bold transition text-sm border flex-1 text-center col-span-2 sm:col-span-1 ${
+                activeTab === 'match'
+                  ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
                   : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
             >
-              Division 1
+              ➕ กรอกคะแนน (Admin)
             </button>
-            <button
-              onClick={() => setActiveTab('d2')}
-              className={`py-3 px-4 rounded-xl font-bold transition text-sm border ${
-                activeTab === 'd2'
-                  ? 'bg-amber-500/10 border-amber-500 text-amber-400'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Division 2
-            </button>
-            <button
-              onClick={() => setActiveTab('halloffame')}
-              className={`py-3 px-4 rounded-xl font-bold transition text-sm border ${
-                activeTab === 'halloffame'
-                  ? 'bg-purple-500/10 border-purple-500 text-purple-400'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              ทำเนียบทีม
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`py-3 px-4 rounded-xl font-bold transition text-sm border ${
-                activeTab === 'history'
-                  ? 'bg-blue-500/10 border-blue-500 text-blue-400'
-                  : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              ผลการแข่งย้อนหลัง
-            </button>
-            {isAdmin && (
-              <button
-                onClick={() => setActiveTab('match')}
-                className={`py-3 px-4 rounded-xl font-bold transition text-sm border ${
-                  activeTab === 'match'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                ➕ กรอกคะแนนทีม (Admin)
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Admin Panels */}
-        {isAdmin && activeTab !== 'history' && activeTab !== 'match' && activeTab !== 'halloffame' && (
+        {isAdmin && activeTab !== 'history' && activeTab !== 'latestseason' && activeTab !== 'match' && activeTab !== 'dropmap' && activeTab !== 'halloffame' && (
           <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
             <h3 className="text-sm font-bold text-emerald-400">➕ [Admin] เพิ่มทีมใหม่</h3>
             <form onSubmit={handleAddTeam} className="flex flex-col md:flex-row gap-3">
@@ -581,7 +754,7 @@ export default function ScrimManagementApp() {
           </div>
         )}
 
-        {isAdmin && activeTab !== 'history' && activeTab !== 'match' && activeTab !== 'halloffame' && (
+        {isAdmin && activeTab !== 'history' && activeTab !== 'latestseason' && activeTab !== 'match' && activeTab !== 'dropmap' && activeTab !== 'halloffame' && (
           <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row gap-3 items-center">
             <input
               type="text"
@@ -692,7 +865,6 @@ export default function ScrimManagementApp() {
                 </div>
               </div>
 
-              {/* ช่องแสดงพรีวิวคะแนนรวมแมตช์นี้แบบเรียลไทม์ */}
               <div className="bg-slate-950 border border-amber-500/30 rounded-xl p-4 flex justify-between items-center">
                 <span className="text-sm text-slate-300 font-medium">คะแนนรวมในแมตช์นี้ (คำนวณออโต้):</span>
                 <span className="text-lg font-extrabold text-amber-400">{previewTotalMatchPoints} แต้ม</span>
@@ -716,219 +888,608 @@ export default function ScrimManagementApp() {
               </button>
             </form>
           </div>
-        ) : activeTab === 'halloffame' ? (
+        ) : activeTab === 'dropmap' ? (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h2 className="text-xl font-bold text-purple-400">ทำเนียบทีม</h2>
-                <p className="text-xs text-slate-400 mt-0.5">รวมรายชื่อทีมที่เคยเข้าร่วมแข่งขันทั้งหมด ป้องกันชื่อตกหล่นเวลารับสมัคร OpenChat</p>
+                <h2 className="text-xl font-bold text-sky-400">🗺️ Drop Map แผนผังจุดลงแข่งขัน</h2>
+                <p className="text-xs text-slate-400 mt-0.5">เลือกซีซั่นและเลือกเกมที่ต้องการดูจุดลงของแต่ละทีม</p>
               </div>
-              <div className="text-xs bg-purple-500/10 border border-purple-500/30 text-purple-300 px-3 py-1.5 rounded-xl font-semibold">
-                รวมทั้งหมด {hallOfFameData.length} ทีม
+
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold">ซีซั่น:</span>
+                  <select
+                    value={selectedDropSeasonId || ''}
+                    onChange={(e) => setSelectedDropSeasonId(Number(e.target.value))}
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 font-bold focus:border-sky-500 focus:outline-none"
+                  >
+                    {historySeasons.map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.season_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold">เลือกเกม:</span>
+                  <select
+                    value={selectedDropMatch}
+                    onChange={(e) => setSelectedDropMatch(Number(e.target.value))}
+                    className="bg-slate-950 border border-sky-500/50 rounded-xl px-3 py-2 text-xs text-sky-300 font-bold focus:border-sky-500 focus:outline-none shadow-sm"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map((matchNum) => (
+                      <option key={matchNum} value={matchNum}>
+                        เกมที่ {matchNum}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {hallOfFameData.length > 0 ? (
-                hallOfFameData.map((item, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={() => handleOpenTeamHistoryModal(item.team_name)}
-                    className="bg-slate-950 border border-slate-800/80 hover:border-purple-500/50 rounded-xl p-4 cursor-pointer transition shadow-md flex flex-col justify-between space-y-2 group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-100 group-hover:text-purple-400 transition text-base">
-                        {item.team_name}
-                      </span>
-                      <span className="text-xs text-slate-500">#{idx + 1}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-900">
-                      {item.seasons.map((sName: string, sIdx: number) => (
-                        <span key={sIdx} className="text-[10px] bg-slate-900 text-slate-300 border border-slate-800 px-2 py-0.5 rounded-md font-medium">
-                          {sName}
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[400px]">
+              {(() => {
+                const currentImg = dropMapImages.find(
+                  (img) => img.match_number === selectedDropMatch && img.season_id === selectedDropSeasonId
+                );
+                if (currentImg) {
+                  return (
+                    <div className="w-full space-y-3 text-center">
+                      <div className="flex justify-between items-center px-2">
+                        <span className="text-sm font-bold text-sky-300">
+                          เกมที่ {currentImg.match_number} ({currentImg.map_name || 'Erangel'})
                         </span>
-                      ))}
+                        <span className="text-xs text-slate-500">
+                          อัปเดตล่าสุด: {new Date(currentImg.updated_at || Date.now()).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl flex justify-center">
+                        <img
+                          src={currentImg.image_url}
+                          alt={`Drop Map Match ${selectedDropMatch}`}
+                          className="max-h-[600px] w-auto object-contain transition-transform hover:scale-105 duration-300"
+                        />
+                      </div>
                     </div>
+                  );
+                } else {
+                  return (
+                    <div className="text-center py-16 space-y-3">
+                      <span className="text-4xl">🗺️</span>
+                      <p className="text-slate-400 text-sm">ยังไม่มีการอัปโหลดรูปภาพ Drop Map สำหรับเกมที่ {selectedDropMatch} ในซีซั่นนี้</p>
+                      {isAdmin && (
+                        <p className="text-xs text-emerald-400">💡 แอดมินสามารถเลื่อนลงไปด้านล่างเพื่ออัปโหลดรูปภาพได้เลยครับ</p>
+                      )}
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+
+            {isAdmin && (
+              <div className="bg-slate-950 border border-sky-500/30 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-sky-400">📤 [Admin] อัปโหลด / จัดการรูปภาพ Drop Map (ตามซีซั่นที่เลือก)</h3>
+                
+                <form onSubmit={handleUploadDropMapImage} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">เลือกเกมที่ต้องการอัปโหลด</label>
+                    <select
+                      value={uploadMatchNumber}
+                      onChange={(e) => setUploadMatchNumber(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                        <option key={num} value={num}>เกมที่ {num}</option>
+                      ))}
+                    </select>
                   </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12 text-slate-500">
-                  ยังไม่มีประวัติซีซั่นในระบบ ทำเนียบทีมจะแสดงขึ้นมาเมื่อมีการกดจบซีซั่นแรก
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">ชื่อแผนที่</label>
+                    <select
+                      value={uploadMapName}
+                      onChange={(e) => setUploadMapName(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+                    >
+                      <option value="Erangel">Erangel</option>
+                      <option value="Miramar">Miramar</option>
+                      <option value="Rondo">Rondo</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1">ไฟล์รูปภาพ (Canva)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                      className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-sky-500 file:text-slate-950 hover:file:bg-sky-400 cursor-pointer"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={processing || !imageFile}
+                    className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2.5 px-6 rounded-xl text-sm transition disabled:opacity-50"
+                  >
+                    {processing ? 'กำลังอัปโหลด...' : '💾 อัปโหลดรูปแผนที่'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        ) : activeTab === 'halloffame' ? (
+          /* Hall of Fame ภาพรวม พร้อมช่องค้นหาและปุ่มอัปโหลดโลโก้ทีม */
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-purple-400">🏛️ Hall of Fame</h2>
+                <p className="text-xs text-slate-400 mt-0.5">รายชื่อทีมทั้งหมด พร้อมโลโก้สัญลักษณ์, สถิติแชมป์ D1, ไก่รวม และแต้มตลอดกาล</p>
+              </div>
+
+              <div className="w-full md:w-72">
+                <input
+                  type="text"
+                  value={hallOfFameSearch}
+                  onChange={(e) => setHallOfFameSearch(e.target.value)}
+                  placeholder="🔍 พิมพ์ชื่อทีมเพื่อค้นหาอันดับ..."
+                  className="w-full bg-slate-950 border border-purple-500/40 rounded-xl px-4 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-400 shadow-sm"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {hallOfFameData
+                .filter((team) => team.team_name.toLowerCase().includes(hallOfFameSearch.toLowerCase()))
+                .map((team, idx) => {
+                  const realRank = hallOfFameData.findIndex((t) => t.team_name === team.team_name) + 1;
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-slate-950 border border-slate-800 hover:border-purple-500/50 rounded-xl p-4 transition shadow-md flex flex-col justify-between gap-4 group"
+                    >
+                      {/* ส่วนหัวการ์ด: โลโก้ + ชื่อทีม + อันดับ */}
+                      <div className="flex items-center justify-between">
+                        <div 
+                          onClick={() => handleOpenHistoryTeamModal(team, 'Hall of Fame')}
+                          className="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0"
+                        >
+                          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+                            {team.logo_url ? (
+                              <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xl font-extrabold text-purple-400">{team.team_name.charAt(0)}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs text-purple-400 font-bold">#{realRank}</span>
+                            <h3 className="font-bold text-slate-100 group-hover:text-purple-300 transition text-base truncate mt-0.5">
+                              {team.team_name}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {team.d1Titles > 0 ? (
+                          <span className="text-[11px] bg-amber-500/10 border border-amber-500/30 text-amber-400 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 shrink-0">
+                            🏆 {team.d1Titles} แชมป์
+                          </span>
+                        ) : (
+                          <span className="text-[11px] bg-purple-500/10 border border-purple-500/30 text-purple-400 px-2.5 py-1 rounded-lg shrink-0">
+                            {team.seasonsCount} ซีซั่น
+                          </span>
+                        )}
+                      </div>
+
+                      {/* สถิติต่างๆ */}
+                      <div 
+                        onClick={() => handleOpenHistoryTeamModal(team, 'Hall of Fame')}
+                        className="grid grid-cols-2 gap-2 bg-slate-900/60 border border-slate-800/80 rounded-lg p-2 text-center text-xs cursor-pointer"
+                      >
+                        <div>
+                          <div className="text-slate-400 text-[10px]">ไก่รวม (WWCD)</div>
+                          <div className="font-extrabold text-amber-400">{team.totalWWCD}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400 text-[10px]">แต้มรวมตลอดกาล</div>
+                          <div className="font-extrabold text-amber-400">{team.totalPointsAllTime}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400 text-[10px]">แต้มอันดับสะสม</div>
+                          <div className="font-bold text-slate-300">{team.totalPlacePoints}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400 text-[10px]">แต้มคิลสะสม</div>
+                          <div className="font-bold text-slate-300">{team.totalKillPoints}</div>
+                        </div>
+                      </div>
+
+                      {/* รายชื่อซีซั่น และปุ่มจัดการโลโก้สำหรับแอดมิน */}
+                      <div className="flex flex-col gap-2 pt-1 border-t border-slate-900">
+                        <div className="text-[11px] text-slate-400 truncate">
+                          <span className="text-slate-500">ซีซั่น:</span> {team.seasonsList.join(', ')}
+                        </div>
+
+                        {isAdmin && (
+                          <div className="flex items-center justify-between pt-1">
+                            {uploadingLogoTeamName === team.team_name ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => setTeamLogoFile(e.target.files ? e.target.files[0] : null)}
+                                  className="text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-purple-500 file:text-slate-950 cursor-pointer w-full"
+                                />
+                                <button
+                                  onClick={() => handleUploadTeamLogo(team.team_name)}
+                                  disabled={!teamLogoFile || processing}
+                                  className="bg-emerald-500 text-slate-950 font-bold px-3 py-1 rounded-lg text-[10px] shrink-0"
+                                >
+                                  บันทึก
+                                </button>
+                                <button
+                                  onClick={() => { setUploadingLogoTeamName(null); setTeamLogoFile(null); }}
+                                  className="bg-slate-800 text-slate-300 px-2 py-1 rounded-lg text-[10px] shrink-0"
+                                >
+                                  ยกเลิก
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setUploadingLogoTeamName(team.team_name)}
+                                className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center justify-center gap-1.5 bg-purple-500/10 border border-purple-500/30 py-2 rounded-xl transition w-full"
+                              >
+                                🖼️ {team.logo_url ? 'เปลี่ยนโลโก้ทีม' : '➕ อัปโหลดโลโก้ทีม'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              {hallOfFameData.filter((team) => team.team_name.toLowerCase().includes(hallOfFameSearch.toLowerCase())).length === 0 && (
+                <div className="col-span-full text-center py-12 text-slate-500 text-sm">
+                  ไม่พบทีมที่คุณค้นหาใน Hall of Fame
                 </div>
               )}
             </div>
           </div>
+        ) : activeTab === 'latestseason' ? (
+          /* หน้าซีซั่นล่าสุด รวมตารางคะแนนปัจจุบันของ Division 1 และ Division 2 ไว้ในหน้าเดียว */
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Division 1 Leaderboard */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-xl font-bold text-amber-400 flex items-center justify-between">
+                  <span>🏆 Division 1 Leaderboard</span>
+                  <span className="text-xs font-normal text-slate-400">({teamsD1.length}/16 ทีม)</span>
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-xs">
+                        <th className="py-3 px-2">อันดับ</th>
+                        <th className="py-3 px-2">ชื่อทีม</th>
+                        <th className="py-3 px-2 text-center">WWCD</th>
+                        <th className="py-3 px-2 text-center">แต้มอันดับ</th>
+                        <th className="py-3 px-2 text-center">แต้มคิล</th>
+                        <th className="py-3 px-2 text-right">แต้มรวม</th>
+                        {isAdmin && <th className="py-3 px-2 text-center">จัดการ</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamsD1.map((team, idx) => (
+                        <tr
+                          key={team.id}
+                          className="border-b border-slate-800/50 hover:bg-slate-800/30 transition cursor-pointer"
+                          onClick={() => handleOpenTeamDetailModal(team)}
+                        >
+                          <td className="py-3 px-2 font-bold">
+                            {idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : idx + 1}
+                          </td>
+                          <td className="py-3 px-2 font-semibold text-slate-200">{team.team_name}</td>
+                          <td className="py-3 px-2 text-center text-amber-400 font-bold">{team.wwcd || 0}</td>
+                          <td className="py-3 px-2 text-center text-slate-300">{team.place_points || 0}</td>
+                          <td className="py-3 px-2 text-center text-slate-300">{team.kill_points || 0}</td>
+                          <td className="py-3 px-2 text-right font-extrabold text-amber-400 text-base">{team.total_points || 0}</td>
+                          {isAdmin && (
+                            <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => handleDeleteTeam(team.id, team.team_name)}
+                                className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-slate-950 px-2 py-1 rounded-lg text-xs font-bold transition"
+                              >
+                                ลบ
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                      {teamsD1.length === 0 && (
+                        <tr>
+                          <td colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-slate-500 text-xs">
+                            ยังไม่มีข้อมูลทีมใน Division 1
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Division 2 Leaderboard */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-xl font-bold text-slate-300 flex items-center justify-between">
+                  <span>🥈 Division 2 Leaderboard</span>
+                  <span className="text-xs font-normal text-slate-400">({teamsD2.length}/20 ทีม)</span>
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-xs">
+                        <th className="py-3 px-2">อันดับ</th>
+                        <th className="py-3 px-2">ชื่อทีม</th>
+                        <th className="py-3 px-2 text-center">WWCD</th>
+                        <th className="py-3 px-2 text-center">แต้มอันดับ</th>
+                        <th className="py-3 px-2 text-center">แต้มคิล</th>
+                        <th className="py-3 px-2 text-right">แต้มรวม</th>
+                        {isAdmin && <th className="py-3 px-2 text-center">จัดการ</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teamsD2.map((team, idx) => (
+                        <tr
+                          key={team.id}
+                          className="border-b border-slate-800/50 hover:bg-slate-800/30 transition cursor-pointer"
+                          onClick={() => handleOpenTeamDetailModal(team)}
+                        >
+                          <td className="py-3 px-2 font-bold text-slate-400">{idx + 1}</td>
+                          <td className="py-3 px-2 font-semibold text-slate-200">{team.team_name}</td>
+                          <td className="py-3 px-2 text-center text-slate-400 font-bold">{team.wwcd || 0}</td>
+                          <td className="py-3 px-2 text-center text-slate-300">{team.place_points || 0}</td>
+                          <td className="py-3 px-2 text-center text-slate-300">{team.kill_points || 0}</td>
+                          <td className="py-3 px-2 text-right font-extrabold text-slate-200 text-base">{team.total_points || 0}</td>
+                          {isAdmin && (
+                            <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => handleDeleteTeam(team.id, team.team_name)}
+                                className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-slate-950 px-2 py-1 rounded-lg text-xs font-bold transition"
+                              >
+                                ลบ
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                      {teamsD2.length === 0 && (
+                        <tr>
+                          <td colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-slate-500 text-xs">
+                            ยังไม่มีข้อมูลทีมใน Division 2
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : activeTab === 'history' ? (
+          /* หน้าซีซั่นทั้งหมด (สำหรับดูประวัติย้อนหลัง) */
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <h2 className="text-xl font-bold text-blue-400">ผลการแข่งย้อนหลัง</h2>
-            {historySeasons.length > 0 ? (
-              <>
-                <div className="flex gap-2 flex-wrap">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-blue-400">📜 ซีซั่นทั้งหมด</h2>
+                <p className="text-xs text-slate-400 mt-0.5">เลือกซีซั่น และคลิกที่ชื่อทีมเพื่อดูคะแนนแยกย่อยรายเกมในซีซั่นนั้นๆ</p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <span className="text-xs text-slate-400 font-semibold">เลือกซีซั่น:</span>
+                <select
+                  value={selectedSeason?.id || ''}
+                  onChange={(e) => {
+                    const found = historySeasons.find((s) => s.id === Number(e.target.value));
+                    if (found) setSelectedSeason(found);
+                  }}
+                  className="bg-slate-950 border border-blue-500/50 rounded-xl px-4 py-2 text-xs text-blue-300 font-bold focus:border-blue-500 focus:outline-none shadow-sm w-full md:w-48"
+                >
                   {historySeasons.map((season) => (
-                    <button
-                      key={season.id}
-                      onClick={() => setSelectedSeason(season)}
-                      className={`px-4 py-2 rounded-lg font-semibold text-sm border ${selectedSeason?.id === season.id ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300'}`}
-                    >
+                    <option key={season.id} value={season.id}>
                       {season.season_name}
-                    </button>
+                    </option>
                   ))}
+                </select>
+              </div>
+            </div>
+
+            {selectedSeason ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h3 className="font-bold text-amber-400 text-sm">🏆 Division 1 ({selectedSeason.season_name})</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="py-2 px-2">#</th>
+                          <th className="py-2 px-2">ทีม (คลิกเพื่อดูแต้มรายเกม)</th>
+                          <th className="py-2 px-2 text-center">WWCD</th>
+                          <th className="py-2 px-2 text-center">แต้มอันดับ</th>
+                          <th className="py-2 px-2 text-center">แต้มคิล</th>
+                          <th className="py-2 px-2 text-right">แต้มรวม</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSeason.d1_snapshot?.map((t: any, idx: number) => (
+                          <tr 
+                            key={idx} 
+                            onClick={() => handleOpenHistoryTeamModal(t, 'Division 1')}
+                            className="border-b border-slate-900/50 hover:bg-slate-900/80 cursor-pointer transition"
+                            title="คลิกเพื่อดูแต้มรายเกม"
+                          >
+                            <td className="py-2 px-2 font-bold text-slate-400">{idx + 1}</td>
+                            <td className="py-2 px-2 font-semibold text-blue-300 hover:underline flex items-center gap-1.5">
+                              <span>{t.team_name}</span>
+                              <span className="text-[10px] text-slate-500">📊</span>
+                            </td>
+                            <td className="py-2 px-2 text-center text-amber-400">{t.wwcd || 0}</td>
+                            <td className="py-2 px-2 text-center text-slate-300">{t.place_points || 0}</td>
+                            <td className="py-2 px-2 text-center text-slate-300">{t.kill_points || 0}</td>
+                            <td className="py-2 px-2 text-right font-bold text-amber-400">{t.total_points || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
-                {selectedSeason && (
-                  <div className="space-y-8 pt-4 border-t border-slate-800">
-                    <h3 className="text-lg font-bold text-amber-400">ซีซั่น: {selectedSeason.season_name}</h3>
-                    
-                    {/* Division 1 Snapshot */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-bold text-amber-400">Division 1 (Snapshot)</h4>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-slate-800 text-slate-400 text-xs bg-slate-950/40">
-                              <th className="py-2 px-3">อันดับ</th>
-                              <th className="py-2 px-3">ชื่อทีม</th>
-                              <th className="py-2 px-3 text-center">WWCD</th>
-                              <th className="py-2 px-3 text-right">คะแนนรวม</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-800/60">
-                            {selectedSeason.d1_snapshot?.map((team: any, i: number) => (
-                              <tr key={i} className={i >= 12 ? 'bg-red-950/60' : ''}>
-                                <td className="py-2 px-3 font-bold text-amber-400">#{i + 1}</td>
-                                <td className="py-2 px-3 text-slate-200">
-                                  <button
-                                    onClick={() => handleOpenTeamHistoryModal(team.team_name)}
-                                    className="hover:text-amber-400 hover:underline decoration-dotted text-left font-semibold"
-                                  >
-                                    {team.team_name}
-                                  </button>
-                                  {i >= 12 ? ' 📉' : ''}
-                                </td>
-                                <td className="py-2 px-3 text-center">{team.wwcd || 0}</td>
-                                <td className="py-2 px-3 text-right font-bold text-amber-400">{team.total_points || 0}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h3 className="font-bold text-slate-300 text-sm">🥈 Division 2 ({selectedSeason.season_name})</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="py-2 px-2">#</th>
+                          <th className="py-2 px-2">ทีม (คลิกเพื่อดูแต้มรายเกม)</th>
+                          <th className="py-2 px-2 text-center">WWCD</th>
+                          <th className="py-2 px-2 text-center">แต้มอันดับ</th>
+                          <th className="py-2 px-2 text-center">แต้มคิล</th>
+                          <th className="py-2 px-2 text-right">แต้มรวม</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSeason.d2_snapshot?.map((t: any, idx: number) => (
+                          <tr 
+                            key={idx} 
+                            onClick={() => handleOpenHistoryTeamModal(t, 'Division 2')}
+                            className="border-b border-slate-900/50 hover:bg-slate-900/80 cursor-pointer transition"
+                            title="คลิกเพื่อดูแต้มรายเกม"
+                          >
+                            <td className="py-2 px-2 font-bold text-slate-400">{idx + 1}</td>
+                            <td className="py-2 px-2 font-semibold text-blue-300 hover:underline flex items-center gap-1.5">
+                              <span>{t.team_name}</span>
+                              <span className="text-[10px] text-slate-500">📊</span>
+                            </td>
+                            <td className="py-2 px-2 text-center text-slate-400">{t.wwcd || 0}</td>
+                            <td className="py-2 px-2 text-center text-slate-300">{t.place_points || 0}</td>
+                            <td className="py-2 px-2 text-center text-slate-300">{t.kill_points || 0}</td>
+                            <td className="py-2 px-2 text-right font-bold text-slate-200">{t.total_points || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </>
+                </div>
+              </div>
             ) : (
-              <div className="text-center py-12 text-slate-500">ยังไม่มีประวัติการแข่งขันย้อนหลัง</div>
+              <p className="text-center text-slate-500 py-10">ยังไม่มีข้อมูลประวัติซีซั่น</p>
             )}
           </div>
-        ) : (
-          /* ตารางคะแนนหลัก Division 1 / Division 2 */
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-amber-400">
-                {activeTab === 'd1' ? 'Division 1 Leaderboard' : 'Division 2 Leaderboard'}
-              </h2>
+        ) : null}
+
+        {/* Modal รายละเอียดแต้มรายแมตช์ของทีมปัจจุบัน */}
+        {isTeamDetailModalOpen && selectedTeamDetail && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-amber-400">📊 สถิติรายแมตช์: {selectedTeamDetail.team_name}</h3>
+                <button
+                  onClick={() => setIsTeamDetailModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-100 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                {teamMatchLogs.length > 0 ? (
+                  teamMatchLogs.map((log) => (
+                    <div key={log.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-sky-400">แมตช์ {log.game_number}</span>
+                        <span className="text-slate-400 ml-2">({log.map_name || 'Erangel'})</span>
+                        {log.wwcd === 1 && <span className="ml-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded">🍗 WWCD</span>}
+                      </div>
+                      <div className="text-right space-x-3">
+                        <span className="text-slate-400">อันดับ {log.place} ({log.place_points} แต้ม)</span>
+                        <span className="text-slate-300">คิล {log.kill_points}</span>
+                        <span className="font-bold text-amber-400">รวม {(log.place_points || 0) + (log.kill_points || 0)} แต้ม</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-slate-500 py-6 text-xs">ยังไม่มีประวัติการบันทึกคะแนนรายแมตช์ของทีมนี้</p>
+                )}
+              </div>
+
+              <button
+                onClick={() => setIsTeamDetailModalOpen(false)}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition"
+              >
+                ปิดหน้าต่าง
+              </button>
             </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-xs bg-slate-950/40">
-                    <th className="py-3 px-4">#</th>
-                    <th className="py-3 px-4">ชื่อทีม</th>
-                    <th className="py-3 px-4 text-center">WWCD</th>
-                    <th className="py-3 px-4 text-center">Placement Pts</th>
-                    <th className="py-3 px-4 text-center">Elimination Pts</th>
-                    <th className="py-3 px-4 text-right font-bold text-amber-400">Total Points</th>
-                    {isAdmin && <th className="py-3 px-4 text-center">จัดการ</th>}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {teams.length > 0 ? (
-                    teams.map((team, idx) => (
-                      <tr 
-                        key={team.id} 
-                        className={`hover:bg-slate-800/40 transition ${
-                          activeTab === 'd1' && idx >= 12 ? 'bg-red-950/20' : activeTab === 'd2' && idx < 4 ? 'bg-emerald-950/20' : ''
-                        }`}
-                      >
-                        <td className="py-3 px-4 font-bold text-amber-400">#{idx + 1}</td>
-                        <td className="py-3 px-4 font-medium text-slate-200">
-                          <button
-                            onClick={() => handleOpenTeamHistoryModal(team.team_name)}
-                            className="hover:text-amber-400 hover:underline decoration-dotted text-left"
-                          >
-                            {team.team_name}
-                          </button>
-                          {activeTab === 'd1' && idx >= 12 && <span className="ml-2 text-xs text-red-400 font-semibold">(โซนตกชั้น)</span>}
-                          {activeTab === 'd2' && idx < 4 && <span className="ml-2 text-xs text-emerald-400 font-semibold">(โซนเลื่อนชั้น)</span>}
-                        </td>
-                        <td className="py-3 px-4 text-center font-semibold">{team.wwcd || 0}</td>
-                        <td className="py-3 px-4 text-center text-slate-300">{team.place_points || 0}</td>
-                        <td className="py-3 px-4 text-center text-slate-300">{team.kill_points || 0}</td>
-                        <td className="py-3 px-4 text-right font-extrabold text-amber-400 text-base">{team.total_points || 0}</td>
-                        {isAdmin && (
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => handleDeleteTeam(team.id, team.team_name)}
-                              className="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1 rounded bg-red-500/10 border border-red-500/20"
-                            >
-                              ลบ
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={isAdmin ? 7 : 6} className="text-center py-12 text-slate-500">
-                        ยังไม่มีข้อมูลทีมในดิวิชันนี้
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          </div>
+        )}
+
+        {/* 📜 Modal รายละเอียดแต้มรายเกมย้อนหลัง */}
+        {isHistoryTeamModalOpen && selectedHistoryTeam && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold text-blue-400">📊 ผลงานรายเกมย้อนหลัง: {selectedHistoryTeam.team_name}</h3>
+                  <p className="text-xs text-slate-400">{historyTeamDivisionName}</p>
+                </div>
+                <button
+                  onClick={() => setIsHistoryTeamModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-100 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs flex justify-between items-center">
+                <span className="text-slate-400">สรุปภาพรวม:</span>
+                <div className="space-x-2">
+                  <span className="text-amber-400">🍗 WWCD: {selectedHistoryTeam.wwcd || 0}</span>
+                  <span className="text-slate-300">อันดับ: {selectedHistoryTeam.place_points || 0}</span>
+                  <span className="text-slate-300">คิล: {selectedHistoryTeam.kill_points || 0}</span>
+                  <span className="font-bold text-amber-400">รวม: {selectedHistoryTeam.total_points || 0} แต้ม</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {historyTeamMatchLogs.length > 0 ? (
+                  historyTeamMatchLogs.map((log: any, i: number) => (
+                    <div key={i} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-blue-400">เกมที่ {log.game_number}</span>
+                        <span className="text-slate-400 ml-2">({log.map_name || 'Erangel'})</span>
+                        {log.wwcd === 1 && <span className="ml-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded">🍗 WWCD</span>}
+                      </div>
+                      <div className="text-right space-x-2">
+                        <span className="text-slate-400">อันดับ {log.place} ({log.place_points} แต้ม)</span>
+                        <span className="text-slate-300">คิล {log.kill_points}</span>
+                        <span className="font-bold text-amber-400">รวม {(log.place_points || 0) + (log.kill_points || 0)} แต้ม</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-slate-500 py-8 text-xs">ไม่พบประวัติรายเกมแยกย่อยของทีมนี้ในซีซั่นดังกล่าว</p>
+                )}
+              </div>
+
+              <button
+                onClick={() => setIsHistoryTeamModalOpen(false)}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs transition"
+              >
+                ปิดหน้าต่าง
+              </button>
             </div>
           </div>
         )}
       </div>
-
-      {/* Modal ประวัติทีมย้อนหลัง */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-amber-400">ประวัติการแข่งขัน: {modalTeamName}</h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-200 font-bold px-2 py-1 bg-slate-800 rounded-lg text-xs"
-              >
-                ✕ ปิด
-              </button>
-            </div>
-
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              {modalLoading ? (
-                <div className="text-center py-8 text-slate-500">กำลังโหลดข้อมูล...</div>
-              ) : teamHistoryResult.length > 0 ? (
-                teamHistoryResult.map((res, i) => (
-                  <div key={i} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-sm">
-                    <div>
-                      <div className="font-bold text-slate-200">{res.season_name}</div>
-                      <div className="text-xs text-slate-400">{res.division} • อันดับที่ #{res.rank}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-extrabold text-amber-400">{res.total_points || 0} คะแนน</div>
-                      <div className="text-xs text-slate-400">WWCD: {res.wwcd || 0}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-slate-500">ไม่พบประวัติการแข่งขันย้อนหลังของทีมนี้</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
