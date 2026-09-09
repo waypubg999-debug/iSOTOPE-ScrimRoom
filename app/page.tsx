@@ -43,11 +43,6 @@ export default function ScrimManagementApp() {
   const [historyTeamDivisionName, setHistoryTeamDivisionName] = useState<string>('');
   const [historyTeamMatchLogs, setHistoryTeamMatchLogs] = useState<any[]>([]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTeamName, setModalTeamName] = useState('');
-  const [teamHistoryResult, setTeamHistoryResult] = useState<any[]>([]);
-  const [modalLoading, setModalLoading] = useState(false);
-
   const [hallOfFameData, setHallOfFameData] = useState<any[]>([]);
   const [hallOfFameSearch, setHallOfFameSearch] = useState('');
 
@@ -671,7 +666,7 @@ export default function ScrimManagementApp() {
           </div>
         </header>
 
-        {/* Tabs - สลับที่ระหว่างซีซั่นทั้งหมด กับ Drop Map เรียบร้อย */}
+        {/* Tabs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 w-full">
           <button
             onClick={() => setActiveTab('latestseason')}
@@ -727,45 +722,45 @@ export default function ScrimManagementApp() {
           )}
         </div>
 
-        {/* Admin Panels */}
-        {isAdmin && activeTab !== 'history' && activeTab !== 'latestseason' && activeTab !== 'match' && activeTab !== 'dropmap' && activeTab !== 'halloffame' && (
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
-            <h3 className="text-sm font-bold text-emerald-400">➕ [Admin] เพิ่มทีมใหม่</h3>
-            <form onSubmit={handleAddTeam} className="flex flex-col md:flex-row gap-3">
+        {/* Admin Panels: ฟอร์มเพิ่มทีมใหม่ และจบซีซั่น */}
+        {isAdmin && (
+          <div className="space-y-4">
+            <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+              <h3 className="text-sm font-bold text-emerald-400">➕ [Admin] เพิ่มทีมใหม่</h3>
+              <form onSubmit={handleAddTeam} className="flex flex-col md:flex-row gap-3">
+                <input
+                  type="text"
+                  value={newTeamName}
+                  onChange={(e) => setNewTeamName(e.target.value)}
+                  placeholder="ชื่อทีม..."
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                />
+                <select
+                  value={newTeamDivision}
+                  onChange={(e) => setNewTeamDivision(e.target.value as '1' | '2')}
+                  className="w-full md:w-48 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+                >
+                  <option value="2">Division 2</option>
+                  <option value="1">Division 1</option>
+                </select>
+                <button type="submit" disabled={processing} className="bg-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm">
+                  บันทึกทีม
+                </button>
+              </form>
+            </div>
+
+            <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row gap-3 items-center">
               <input
                 type="text"
-                value={newTeamName}
-                onChange={(e) => setNewTeamName(e.target.value)}
-                placeholder="ชื่อทีม..."
-                className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500"
+                value={seasonNote}
+                onChange={(e) => setSeasonNote(e.target.value)}
+                placeholder="ระบุชื่อซีซั่น (เช่น Season 1)..."
+                className="flex-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
               />
-              <select
-                value={newTeamDivision}
-                onChange={(e) => setNewTeamDivision(e.target.value as '1' | '2')}
-                className="w-full md:w-48 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-              >
-                <option value="2">Division 2</option>
-                <option value="1">Division 1</option>
-              </select>
-              <button type="submit" disabled={processing} className="bg-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm">
-                บันทึกทีม
+              <button onClick={handleNextSeasonTransition} disabled={processing} className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm shadow-lg">
+                🏆 จบซีซั่น & สลับโควต้า
               </button>
-            </form>
-          </div>
-        )}
-
-        {isAdmin && activeTab !== 'history' && activeTab !== 'latestseason' && activeTab !== 'match' && activeTab !== 'dropmap' && activeTab !== 'halloffame' && (
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl flex flex-col md:flex-row gap-3 items-center">
-            <input
-              type="text"
-              value={seasonNote}
-              onChange={(e) => setSeasonNote(e.target.value)}
-              placeholder="ระบุชื่อซีซั่น (เช่น Season 1)..."
-              className="flex-1 w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-            />
-            <button onClick={handleNextSeasonTransition} disabled={processing} className="w-full md:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-6 py-3 rounded-xl text-sm shadow-lg">
-              🏆 จบซีซั่น & สลับโควต้า
-            </button>
+            </div>
           </div>
         )}
 
@@ -1021,7 +1016,6 @@ export default function ScrimManagementApp() {
             )}
           </div>
         ) : activeTab === 'halloffame' ? (
-          /* Hall of Fame ภาพรวม พร้อมช่องค้นหาและปุ่มอัปโหลดโลโก้ทีม */
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -1050,7 +1044,6 @@ export default function ScrimManagementApp() {
                       key={idx}
                       className="bg-slate-950 border border-slate-800 hover:border-purple-500/50 rounded-xl p-4 transition shadow-md flex flex-col justify-between gap-4 group"
                     >
-                      {/* ส่วนหัวการ์ด: โลโก้ + ชื่อทีม + อันดับ */}
                       <div className="flex items-center justify-between">
                         <div 
                           onClick={() => handleOpenHistoryTeamModal(team, 'Hall of Fame')}
@@ -1082,7 +1075,6 @@ export default function ScrimManagementApp() {
                         )}
                       </div>
 
-                      {/* สถิติต่างๆ */}
                       <div 
                         onClick={() => handleOpenHistoryTeamModal(team, 'Hall of Fame')}
                         className="grid grid-cols-2 gap-2 bg-slate-900/60 border border-slate-800/80 rounded-lg p-2 text-center text-xs cursor-pointer"
@@ -1105,7 +1097,6 @@ export default function ScrimManagementApp() {
                         </div>
                       </div>
 
-                      {/* รายชื่อซีซั่น และปุ่มจัดการโลโก้สำหรับแอดมิน */}
                       <div className="flex flex-col gap-2 pt-1 border-t border-slate-900">
                         <div className="text-[11px] text-slate-400 truncate">
                           <span className="text-slate-500">ซีซั่น:</span> {team.seasonsList.join(', ')}
@@ -1157,7 +1148,6 @@ export default function ScrimManagementApp() {
             </div>
           </div>
         ) : activeTab === 'latestseason' ? (
-          /* หน้าซีซั่นล่าสุด รวมตารางคะแนนปัจจุบันของ Division 1 และ Division 2 ไว้ในหน้าเดียว */
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Division 1 Leaderboard */}
@@ -1276,7 +1266,6 @@ export default function ScrimManagementApp() {
             </div>
           </div>
         ) : activeTab === 'history' ? (
-          /* หน้าซีซั่นทั้งหมด (สำหรับดูประวัติย้อนหลัง) */
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -1432,7 +1421,7 @@ export default function ScrimManagementApp() {
           </div>
         )}
 
-        {/* 📜 Modal รายละเอียดแต้มรายเกมย้อนหลัง */}
+        {/* Modal รายละเอียดแต้มรายเกมย้อนหลัง */}
         {isHistoryTeamModalOpen && selectedHistoryTeam && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
