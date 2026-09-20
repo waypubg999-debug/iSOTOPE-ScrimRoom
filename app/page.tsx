@@ -49,17 +49,10 @@ export default function ScrimManagementApp() {
   const [uploadingLogoTeamName, setUploadingLogoTeamName] = useState<string | null>(null);
   const [teamLogoFile, setTeamLogoFile] = useState<File | null>(null);
 
-  const [gameDivision, setGameDivision] = useState<'1' | '2'>('1');
-  const [gameNumber, setGameNumber] = useState('1');
-  const [mapName, setMapName] = useState('Erangel');
-  const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [teamPlace, setTeamPlace] = useState<number | ''>('');
-  const [teamKills, setTeamKills] = useState<number | ''>('');
-  const [isWWCD, setIsWWCD] = useState(false);
-
-  const calculatedPlacePts = typeof teamPlace === 'number' ? (placementPointsMap[teamPlace] || 0) : 0;
-  const calculatedKillPts = typeof teamKills === 'number' ? teamKills : 0;
-  const previewTotalMatchPoints = teamPlace !== '' ? calculatedPlacePts + calculatedKillPts : 0;
+  // State สำหรับหน้ากรอกคะแนนแบบหลายทีมพร้อมกัน (Batch Input)
+  const [batchGameNumber, setBatchGameNumber] = useState<number>(1);
+  const [batchMapName, setBatchMapName] = useState<string>('Erangel');
+  const [batchInputs, setBatchInputs] = useState<{ [teamId: string]: { place: string; kills: string; wwcd: boolean } }>({});
 
   const [seasonNote, setSeasonNote] = useState('');
   const [newTeamName, setNewTeamName] = useState('');
@@ -67,28 +60,18 @@ export default function ScrimManagementApp() {
 
   const fetchTeamsAndLogs = async () => {
     setLoading(true);
-    if (activeTab === 'latestseason') {
-      const { data: d1Data, error: errD1 } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('division_id', 1);
+    const { data: d1Data, error: errD1 } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('division_id', 1);
 
-      const { data: d2Data, error: errD2 } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('division_id', 2);
+    const { data: d2Data, error: errD2 } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('division_id', 2);
 
-      if (!errD1 && d1Data) setTeamsD1(sortLeaderboard(d1Data));
-      if (!errD2 && d2Data) setTeamsD2(sortLeaderboard(d2Data));
-    } else if (activeTab === 'history') {
-      await fetchHistory();
-    } else if (activeTab === 'halloffame') {
-      await fetchHistory();
-      await fetchHallOfFame();
-    } else if (activeTab === 'dropmap') {
-      await fetchHistory();
-      await fetchDropMapImages();
-    }
+    if (!errD1 && d1Data) setTeamsD1(sortLeaderboard(d1Data));
+    if (!errD2 && d2Data) setTeamsD2(sortLeaderboard(d2Data));
 
     const { data: allData } = await supabase
       .from('teams')
@@ -98,10 +81,43 @@ export default function ScrimManagementApp() {
 
     const { data: logsData, error: logErr } = await supabase.from('match_logs').select('*');
     if (logErr) console.error('Error fetching match_logs:', logErr);
-    if (logsData) setMatchLogs(logsData);
+    if (logsData) {
+      setMatchLogs(logsData);
+    }
+
+    if (activeTab === 'history') {
+      await fetchHistory();
+    } else if (activeTab === 'halloffame') {
+      await fetchHistory();
+      await fetchHallOfFame();
+    } else if (activeTab === 'dropmap') {
+      await fetchHistory();
+      await fetchDropMapImages();
+    }
 
     setLoading(false);
   };
+
+  // เมื่อเปลี่ยนเกมที่จะกรอก ให้ดึงข้อมูลเก่าของเกมนั้นมาเติมในฟอร์ม (ถ้ามี)
+  useEffect(() => {
+    if (activeTab === 'match' && allTeams.length > 0) {
+      const initialInputs: { [teamId: string]: { place: string; kills: string; wwcd: boolean } } = {};
+      allTeams.forEach((team) => {
+        const existingLog = matchLogs.find(
+          (l) => String(l.team_id).trim() === String(team.id).trim() && Number(l.game_number) === batchGameNumber
+        );
+        initialInputs[team.id] = {
+          place: existingLog ? String(existingLog.place ?? '') : '',
+          kills: existingLog ? String(existingLog.kill_points ?? '') : '',
+          wwcd: existingLog ? existingLog.wwcd === 1 : false,
+        };
+        if (existingLog && existingLog.map_name) {
+          setBatchMapName(existingLog.map_name);
+        }
+      });
+      setBatchInputs(initialInputs);
+    }
+  }, [batchGameNumber, activeTab, allTeams, matchLogs]);
 
   const fetchDropMapImages = async () => {
     const { data, error } = await supabase
@@ -272,26 +288,6 @@ export default function ScrimManagementApp() {
     fetchTeamsAndLogs();
   }, [activeTab]);
 
-  useEffect(() => {
-    if (selectedTeamId && gameNumber) {
-      const existingLog = matchLogs.find(
-        (l) =>
-          String(l.team_id).trim() === String(selectedTeamId).trim() &&
-          String(l.game_number).trim() === String(gameNumber).trim()
-      );
-      if (existingLog) {
-        setTeamPlace(existingLog.place ?? '');
-        setTeamKills(existingLog.kill_points ?? '');
-        setIsWWCD(existingLog.wwcd === 1);
-        setMapName(existingLog.map_name || 'Erangel');
-      } else {
-        setTeamPlace('');
-        setTeamKills('');
-        setIsWWCD(false);
-      }
-    }
-  }, [selectedTeamId, gameNumber, matchLogs]);
-
   const handleUploadTeamLogo = async (teamName: string) => {
     if (!isAdmin || !teamLogoFile) return;
 
@@ -423,99 +419,92 @@ export default function ScrimManagementApp() {
     }
   };
 
-  const handleSaveMatchScore = async (e: React.FormEvent) => {
+  // ฟังก์ชันบันทึกคะแนนแบบพร้อมกันทั้งหมด (Batch Save)
+  const handleSaveAllBatchScores = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
-    if (!selectedTeamId || teamPlace === '') return;
-
-    const placeVal = Number(teamPlace);
-    const killsVal = Number(teamKills) || 0;
-     
-    const pPoints = placementPointsMap[placeVal] || 0;
-    const kPoints = killsVal;
-    const newMatchTotal = pPoints + kPoints;
 
     setProcessing(true);
     try {
-      const existingLog = matchLogs.find(
-        (l) =>
-          String(l.team_id).trim() === String(selectedTeamId).trim() &&
-          String(l.game_number).trim() === String(gameNumber).trim()
-      );
+      for (const team of allTeams) {
+        const input = batchInputs[team.id];
+        if (!input || input.place === '') continue; // ข้ามทีมที่ไม่ได้กรอกอันดับ
 
-      const { data: teamData } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('id', selectedTeamId)
-        .single();
+        const placeVal = Number(input.place);
+        const killsVal = Number(input.kills) || 0;
+        const pPoints = placementPointsMap[placeVal] || 0;
+        const kPoints = killsVal;
+        const newMatchTotal = pPoints + kPoints;
 
-      if (!teamData) {
-        setProcessing(false);
-        return;
-      }
+        const existingLog = matchLogs.find(
+          (l) => String(l.team_id).trim() === String(team.id).trim() && Number(l.game_number) === batchGameNumber
+        );
 
-      let updatedWWCD = teamData.wwcd || 0;
-      let updatedPlace = teamData.place_points || 0;
-      let updatedKill = teamData.kill_points || 0;
-      let updatedTotal = teamData.total_points || 0;
+        let updatedWWCD = team.wwcd || 0;
+        let updatedPlace = team.place_points || 0;
+        let updatedKill = team.kill_points || 0;
+        let updatedTotal = team.total_points || 0;
 
-      if (existingLog) {
-        const oldWWCDVal = existingLog.wwcd || 0;
-        const oldPlaceVal = existingLog.place_points || 0;
-        const oldKillVal = existingLog.kill_points || 0;
-        const oldTotalVal = oldPlaceVal + oldKillVal;
+        if (existingLog) {
+          const oldWWCDVal = existingLog.wwcd || 0;
+          const oldPlaceVal = existingLog.place_points || 0;
+          const oldKillVal = existingLog.kill_points || 0;
+          const oldTotalVal = oldPlaceVal + oldKillVal;
 
-        if (isWWCD && oldWWCDVal === 0) updatedWWCD = (teamData.wwcd || 0) + 1;
-        else if (!isWWCD && oldWWCDVal > 0) updatedWWCD = Math.max(0, (teamData.wwcd || 0) - 1);
+          if (input.wwcd && oldWWCDVal === 0) updatedWWCD = (team.wwcd || 0) + 1;
+          else if (!input.wwcd && oldWWCDVal > 0) updatedWWCD = Math.max(0, (team.wwcd || 0) - 1);
 
-        updatedPlace = updatedPlace - oldPlaceVal + pPoints;
-        updatedKill = updatedKill - oldKillVal + kPoints;
-        updatedTotal = updatedTotal - oldTotalVal + newMatchTotal;
+          updatedPlace = updatedPlace - oldPlaceVal + pPoints;
+          updatedKill = updatedKill - oldKillVal + kPoints;
+          updatedTotal = updatedTotal - oldTotalVal + newMatchTotal;
+
+          await supabase
+            .from('match_logs')
+            .update({ 
+              map_name: batchMapName, 
+              place: placeVal, 
+              place_points: pPoints, 
+              kill_points: kPoints, 
+              wwcd: input.wwcd ? 1 : 0 
+            })
+            .eq('id', existingLog.id);
+        } else {
+          updatedWWCD = input.wwcd ? updatedWWCD + 1 : updatedWWCD;
+          updatedPlace += pPoints;
+          updatedKill += kPoints;
+          updatedTotal += newMatchTotal;
+
+          await supabase.from('match_logs').insert([
+            {
+              team_id: team.id,
+              division_id: team.division_id,
+              game_number: batchGameNumber,
+              map_name: batchMapName,
+              place: placeVal,
+              place_points: pPoints,
+              kill_points: kPoints,
+              wwcd: input.wwcd ? 1 : 0,
+            },
+          ]);
+        }
 
         await supabase
-          .from('match_logs')
+          .from('teams')
           .update({ 
-            map_name: mapName, 
-            place: placeVal, 
-            place_points: pPoints, 
-            kill_points: kPoints, 
-            wwcd: isWWCD ? 1 : 0 
+            wwcd: updatedWWCD, 
+            place_points: updatedPlace, 
+            kill_points: updatedKill, 
+            total_points: updatedTotal 
           })
-          .eq('id', existingLog.id);
-      } else {
-        updatedWWCD = isWWCD ? updatedWWCD + 1 : updatedWWCD;
-        updatedPlace += pPoints;
-        updatedKill += kPoints;
-        updatedTotal += newMatchTotal;
-
-        await supabase.from('match_logs').insert([
-          {
-            team_id: parseInt(selectedTeamId),
-            division_id: parseInt(gameDivision),
-            game_number: parseInt(gameNumber),
-            map_name: mapName,
-            place: placeVal,
-            place_points: pPoints,
-            kill_points: kPoints,
-            wwcd: isWWCD ? 1 : 0,
-          },
-        ]);
+          .eq('id', team.id);
       }
 
-      await supabase
-        .from('teams')
-        .update({ 
-          wwcd: updatedWWCD, 
-          place_points: updatedPlace, 
-          kill_points: updatedKill, 
-          total_points: updatedTotal 
-        })
-        .eq('id', selectedTeamId);
-
-      alert(`✅ บันทึกคะแนนสำเร็จ! (อันดับ ${placeVal} ได้รับ ${pPoints} แต้ม + คิล ${kPoints} แต้ม)`);
+      alert(`✅ บันทึกคะแนนเกมที่ ${batchGameNumber} สำเร็จทุกทีมเรียบร้อย!`);
       await fetchTeamsAndLogs();
-    } catch (err) {
+      setActiveTab('latestseason');
+    } catch (err: any) {
       console.error(err);
+      alert('เกิดข้อผิดพลาดในการบันทึก: ' + (err.message || 'โปรดลองใหม่อีกครั้ง'));
     } finally {
       setProcessing(false);
     }
@@ -723,7 +712,7 @@ export default function ScrimManagementApp() {
         </div>
 
         {/* Admin Panels: ฟอร์มเพิ่มทีมใหม่ และจบซีซั่น */}
-        {isAdmin && (
+        {isAdmin && activeTab !== 'match' && (
           <div className="space-y-4">
             <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-5 shadow-xl space-y-4">
               <h3 className="text-sm font-bold text-emerald-400">➕ [Admin] เพิ่มทีมใหม่</h3>
@@ -766,41 +755,34 @@ export default function ScrimManagementApp() {
 
         {/* Content Section */}
         {activeTab === 'match' && isAdmin ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-              <span>📝</span> บันทึกคะแนนด้วยระบบคำนวณอัตโนมัติ (Admin Only)
-            </h2>
-            <form onSubmit={handleSaveMatchScore} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">เลือกดิวิชัน</label>
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                  <span>📝</span> กรอกคะแนนทุกทีมพร้อมกัน (Batch Input)
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">เลือกเกมและแผนที่ จากนั้นกรอกอันดับและคิลของแต่ละทีมแล้วกดบันทึกทีเดียว</p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold">เกมที่:</span>
                   <select
-                    value={gameDivision}
-                    onChange={(e) => { setGameDivision(e.target.value as '1' | '2'); setSelectedTeamId(''); }}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-                  >
-                    <option value="1">Division 1</option>
-                    <option value="2">Division 2</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">เกมที่</label>
-                  <select
-                    value={gameNumber}
-                    onChange={(e) => setGameNumber(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+                    value={batchGameNumber}
+                    onChange={(e) => setBatchGameNumber(Number(e.target.value))}
+                    className="bg-slate-950 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-emerald-300 font-bold focus:outline-none"
                   >
                     {[1, 2, 3, 4, 5, 6].map((num) => (
                       <option key={num} value={num}>เกมที่ {num}</option>
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">แผนที่</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold">แผนที่:</span>
                   <select
-                    value={mapName}
-                    onChange={(e) => setMapName(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
+                    value={batchMapName}
+                    onChange={(e) => setBatchMapName(e.target.value)}
+                    className="bg-slate-950 border border-emerald-500/50 rounded-xl px-3 py-2 text-xs text-emerald-300 font-bold focus:outline-none"
                   >
                     <option value="Erangel">Erangel</option>
                     <option value="Miramar">Miramar</option>
@@ -808,78 +790,159 @@ export default function ScrimManagementApp() {
                   </select>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">เลือกทีม</label>
-                <select
-                  value={selectedTeamId}
-                  onChange={(e) => setSelectedTeamId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-                  required
-                >
-                  <option value="">-- กรุณาเลือกทีม --</option>
-                  {allTeams
-                    .filter((t) => t.division_id.toString() === gameDivision)
-                    .map((team) => (
-                      <option key={team.id} value={team.id}>{team.team_name}</option>
-                    ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">อันดับที่ได้ (Place 1-16)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="16"
-                    value={teamPlace}
-                    onChange={(e) => setTeamPlace(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="เช่น 1, 2, 3..."
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-                    required
-                  />
-                  <p className="text-[11px] text-amber-400/80 mt-1">
-                    👉 แปลงเป็นคะแนนอันดับให้อัตโนมัติ: <span className="font-bold">{calculatedPlacePts} แต้ม</span>
-                  </p>
+            <form onSubmit={handleSaveAllBatchScores} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* ตารางกรอก Division 1 */}
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h3 className="font-bold text-amber-400 text-sm">🏆 Division 1 ({teamsD1.length} ทีม)</h3>
+                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="py-2 px-2">ทีม</th>
+                          <th className="py-2 px-2 text-center w-20">อันดับ (1-16)</th>
+                          <th className="py-2 px-2 text-center w-20">คิล</th>
+                          <th className="py-2 px-2 text-center w-20">WWCD (ไก่)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teamsD1.map((team) => (
+                          <tr key={team.id} className="border-b border-slate-900/60">
+                            <td className="py-2.5 px-2 font-semibold text-slate-200">{team.team_name}</td>
+                            <td className="py-2.5 px-2 text-center">
+                              <input
+                                type="number"
+                                min="1"
+                                max="16"
+                                value={batchInputs[team.id]?.place || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setBatchInputs(prev => ({
+                                    ...prev,
+                                    [team.id]: { ...(prev[team.id] || { kills: '', wwcd: false }), place: val }
+                                  }));
+                                }}
+                                placeholder="อันดับ"
+                                className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs text-slate-100 focus:border-amber-400 focus:outline-none"
+                              />
+                            </td>
+                            <td className="py-2.5 px-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                value={batchInputs[team.id]?.kills || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setBatchInputs(prev => ({
+                                    ...prev,
+                                    [team.id]: { ...(prev[team.id] || { place: '', wwcd: false }), kills: val }
+                                  }));
+                                }}
+                                placeholder="คิล"
+                                className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs text-slate-100 focus:border-amber-400 focus:outline-none"
+                              />
+                            </td>
+                            <td className="py-2.5 px-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={batchInputs[team.id]?.wwcd || false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setBatchInputs(prev => ({
+                                    ...prev,
+                                    [team.id]: { ...(prev[team.id] || { place: '', kills: '' }), wwcd: checked }
+                                  }));
+                                }}
+                                className="w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 cursor-pointer"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">จำนวนคิล (Kills)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={teamKills}
-                    onChange={(e) => setTeamKills(e.target.value === '' ? '' : Number(e.target.value))}
-                    placeholder="เช่น 5"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
-                    required
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    👉 แต้มคิล (1 คิล = 1 แต้ม): <span className="font-bold text-slate-200">{calculatedKillPts} แต้ม</span>
-                  </p>
+
+                {/* ตารางกรอก Division 2 */}
+                <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h3 className="font-bold text-slate-300 text-sm">🥈 Division 2 ({teamsD2.length} ทีม)</h3>
+                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-800 text-slate-400">
+                          <th className="py-2 px-2">ทีม</th>
+                          <th className="py-2 px-2 text-center w-20">อันดับ</th>
+                          <th className="py-2 px-2 text-center w-20">คิล</th>
+                          <th className="py-2 px-2 text-center w-20">WWCD (ไก่)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teamsD2.map((team) => (
+                          <tr key={team.id} className="border-b border-slate-900/60">
+                            <td className="py-2.5 px-2 font-semibold text-slate-200">{team.team_name}</td>
+                            <td className="py-2.5 px-2 text-center">
+                              <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={batchInputs[team.id]?.place || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setBatchInputs(prev => ({
+                                    ...prev,
+                                    [team.id]: { ...(prev[team.id] || { kills: '', wwcd: false }), place: val }
+                                  }));
+                                }}
+                                placeholder="อันดับ"
+                                className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs text-slate-100 focus:border-amber-400 focus:outline-none"
+                              />
+                            </td>
+                            <td className="py-2.5 px-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                value={batchInputs[team.id]?.kills || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setBatchInputs(prev => ({
+                                    ...prev,
+                                    [team.id]: { ...(prev[team.id] || { place: '', wwcd: false }), kills: val }
+                                  }));
+                                }}
+                                placeholder="คิล"
+                                className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-xs text-slate-100 focus:border-amber-400 focus:outline-none"
+                              />
+                            </td>
+                            <td className="py-2.5 px-2 text-center">
+                              <input
+                                type="checkbox"
+                                checked={batchInputs[team.id]?.wwcd || false}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setBatchInputs(prev => ({
+                                    ...prev,
+                                    [team.id]: { ...(prev[team.id] || { place: '', kills: '' }), wwcd: checked }
+                                  }));
+                                }}
+                                className="w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 cursor-pointer"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-slate-950 border border-amber-500/30 rounded-xl p-4 flex justify-between items-center">
-                <span className="text-sm text-slate-300 font-medium">คะแนนรวมในแมตช์นี้ (คำนวณออโต้):</span>
-                <span className="text-lg font-extrabold text-amber-400">{previewTotalMatchPoints} แต้ม</span>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="wwcd"
-                  checked={isWWCD}
-                  onChange={(e) => setIsWWCD(e.target.checked)}
-                  className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-emerald-500"
-                />
-                <label htmlFor="wwcd" className="text-sm font-semibold text-slate-200 cursor-pointer">
-                  ทีมนี้ได้ไก่ (WWCD)
-                </label>
-              </div>
-
-              <button type="submit" disabled={processing} className="w-full bg-emerald-500 text-slate-950 font-bold py-3 px-6 rounded-xl text-sm">
-                💾 บันทึกคะแนนแมตช์นี้
+              <button
+                type="submit"
+                disabled={processing}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3.5 px-6 rounded-xl text-sm transition shadow-lg"
+              >
+                {processing ? 'กำลังบันทึกคะแนน...' : `💾 บันทึกคะแนนเกมที่ ${batchGameNumber} ทั้งหมดทันที`}
               </button>
             </form>
           </div>
@@ -1421,7 +1484,7 @@ export default function ScrimManagementApp() {
           </div>
         )}
 
-        {/* Modal รายละเอียดแต้มรายเกมย้อนหลัง */}
+        {/* 📜 Modal รายละเอียดแต้มรายเกมย้อนหลัง */}
         {isHistoryTeamModalOpen && selectedHistoryTeam && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
