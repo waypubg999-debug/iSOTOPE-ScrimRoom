@@ -1096,12 +1096,12 @@ export default function ScrimManagementApp() {
 
             {showcaseSubTab === 'D1' ? (
               <div className="space-y-4 pt-2">
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {sortedTeamsD1ByName.map((team, idx) => (
                     <div
                       key={team.id}
                       onClick={() => handleOpenShowcaseTeamModal(team)}
-                      className="relative overflow-hidden bg-slate-950 border border-slate-800/90 hover:border-sky-500/50 rounded-xl p-3.5 flex flex-col items-center text-center gap-3 transition shadow-xl group cursor-pointer"
+                      className="relative overflow-hidden bg-slate-950 border border-slate-800/90 hover:border-sky-500/50 rounded-2xl p-5 flex flex-col items-center text-center gap-4 transition shadow-xl group cursor-pointer"
                     >
                       {team.logo_url && (
                         <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none overflow-hidden scale-125 group-hover:scale-150 transition duration-500">
@@ -1109,20 +1109,20 @@ export default function ScrimManagementApp() {
                         </div>
                       )}
 
-                      <span className="absolute top-2 left-2.5 text-[10px] font-black text-sky-400/80 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20">
+                      <span className="absolute top-3 left-3 text-xs font-black text-sky-400/90 bg-sky-500/10 px-2.5 py-1 rounded-lg border border-sky-500/20">
                         #{idx + 1}
                       </span>
 
-                      <div className="relative z-10 w-16 h-16 rounded-xl bg-slate-900/90 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-lg group-hover:scale-105 transition">
+                      <div className="relative z-10 w-24 h-24 rounded-2xl bg-slate-900/90 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xl group-hover:scale-105 transition mt-2">
                         {team.logo_url ? (
                           <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-2xl font-black text-sky-400">{team.team_name.charAt(0)}</span>
+                          <span className="text-4xl font-black text-sky-400">{team.team_name.charAt(0)}</span>
                         )}
                       </div>
 
-                      <div className="relative z-10 min-w-0 w-full bg-slate-900/60 backdrop-blur-sm rounded-lg py-1 px-1 border border-slate-800/80">
-                        <h4 className="font-bold text-slate-100 text-xs truncate w-full tracking-wide group-hover:text-sky-300 transition" title={team.team_name}>
+                      <div className="relative z-10 min-w-0 w-full bg-slate-900/70 backdrop-blur-sm rounded-xl py-2 px-2 border border-slate-800/80">
+                        <h4 className="font-extrabold text-slate-100 text-sm truncate w-full tracking-wide group-hover:text-sky-300 transition" title={team.team_name}>
                           {team.team_name}
                         </h4>
                       </div>
