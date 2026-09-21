@@ -760,12 +760,9 @@ export default function ScrimManagementApp() {
         {/* Header */}
         <header className="bg-slate-900/90 backdrop-blur-md border border-sky-500/30 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-wider text-sky-400">
+            <h1 className="text-3xl md:text-4xl font-black tracking-wider text-sky-400">
               CONYSWEETxiSOTOPE SCRIM LEADERBOARD
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Division 1 ({currentD1Count}/16) | Division 2 ({currentD2Count}/20)
-            </p>
           </div>
           <div>
             <button
