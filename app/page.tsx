@@ -47,7 +47,7 @@ export default function ScrimManagementApp() {
   const [isHistoryTeamModalOpen, setIsHistoryTeamModalOpen] = useState(false);
   const [selectedHistoryTeam, setSelectedHistoryTeam] = useState<any>(null);
   const [historyTeamDivisionName, setHistoryTeamDivisionName] = useState<string>('');
-  const [historyTeamMatchLogs, setHistoryTeamMatchLogs] = useState<any[]>([]);
+  const [historyTeamSeasonRecords, setHistoryTeamSeasonRecords] = useState<any[]>([]);
 
   const [hallOfFameData, setHallOfFameData] = useState<any[]>([]);
   const [hallOfFameSearch, setHallOfFameSearch] = useState('');
@@ -215,7 +215,7 @@ export default function ScrimManagementApp() {
       totalPlacePoints: number;
       totalKillPoints: number;
       totalPointsAllTime: number;
-      seasonsList: string[];
+      seasonsDetails: any[];
       logo_url?: string;
     } } = {};
 
@@ -235,14 +235,22 @@ export default function ScrimManagementApp() {
             totalPlacePoints: 0,
             totalKillPoints: 0,
             totalPointsAllTime: 0,
-            seasonsList: [],
+            seasonsDetails: [],
             logo_url: t.logo_url || foundTeamInDb?.logo_url || ''
           };
         }
-        if (!teamMap[key].seasonsList.includes(seasonName)) {
-          teamMap[key].seasonsList.push(seasonName);
-          teamMap[key].seasonsCount += 1;
-        }
+        
+        teamMap[key].seasonsDetails.push({
+          season_name: seasonName,
+          division: 'Division 1',
+          rank: idx + 1,
+          wwcd: t.wwcd || 0,
+          place_points: t.place_points || 0,
+          kill_points: t.kill_points || 0,
+          total_points: t.total_points || 0
+        });
+
+        teamMap[key].seasonsCount += 1;
         if (idx === 0) {
           teamMap[key].d1Titles += 1;
         }
@@ -253,7 +261,7 @@ export default function ScrimManagementApp() {
         if (!teamMap[key].logo_url && t.logo_url) teamMap[key].logo_url = t.logo_url;
       });
 
-      season.d2_snapshot?.forEach((t: any) => {
+      season.d2_snapshot?.forEach((t: any, idx: number) => {
         const name = t.team_name.trim();
         const key = name.toLowerCase();
         if (!teamMap[key]) {
@@ -266,14 +274,22 @@ export default function ScrimManagementApp() {
             totalPlacePoints: 0,
             totalKillPoints: 0,
             totalPointsAllTime: 0,
-            seasonsList: [],
+            seasonsDetails: [],
             logo_url: t.logo_url || foundTeamInDb?.logo_url || ''
           };
         }
-        if (!teamMap[key].seasonsList.includes(seasonName)) {
-          teamMap[key].seasonsList.push(seasonName);
-          teamMap[key].seasonsCount += 1;
-        }
+
+        teamMap[key].seasonsDetails.push({
+          season_name: seasonName,
+          division: 'Division 2',
+          rank: idx + 1,
+          wwcd: t.wwcd || 0,
+          place_points: t.place_points || 0,
+          kill_points: t.kill_points || 0,
+          total_points: t.total_points || 0
+        });
+
+        teamMap[key].seasonsCount += 1;
         teamMap[key].totalWWCD += (t.wwcd || 0);
         teamMap[key].totalPlacePoints += (t.place_points || 0);
         teamMap[key].totalKillPoints += (t.kill_points || 0);
@@ -288,13 +304,21 @@ export default function ScrimManagementApp() {
       if (!teamMap[key]) {
         teamMap[key] = {
           team_name: name,
-          seasonsCount: 0,
+          seasonsCount: 1,
           d1Titles: 0,
           totalWWCD: dbT.wwcd || 0,
           totalPlacePoints: dbT.place_points || 0,
           totalKillPoints: dbT.kill_points || 0,
           totalPointsAllTime: dbT.total_points || 0,
-          seasonsList: ['Current'],
+          seasonsDetails: [{
+            season_name: 'Current Season',
+            division: `Division ${dbT.division_id}`,
+            rank: '-',
+            wwcd: dbT.wwcd || 0,
+            place_points: dbT.place_points || 0,
+            kill_points: dbT.kill_points || 0,
+            total_points: dbT.total_points || 0
+          }],
           logo_url: dbT.logo_url || ''
         };
       } else {
@@ -305,7 +329,7 @@ export default function ScrimManagementApp() {
     });
 
     const formattedData = Object.values(teamMap)
-      .filter((team) => team.totalPointsAllTime > 0 || team.totalWWCD > 0 || team.d1Titles > 0 || team.seasonsCount > 1 || (team.seasonsList.length === 1 && team.seasonsList[0] !== 'Current'))
+      .filter((team) => team.totalPointsAllTime > 0 || team.totalWWCD > 0 || team.d1Titles > 0 || team.seasonsCount > 0)
       .sort((a, b) => {
         if (b.d1Titles !== a.d1Titles) return b.d1Titles - a.d1Titles;
         if (b.totalPointsAllTime !== a.totalPointsAllTime) return b.totalPointsAllTime - a.totalPointsAllTime;
@@ -340,17 +364,21 @@ export default function ScrimManagementApp() {
       totalPlacePoints: team.place_points || 0,
       totalKillPoints: team.kill_points || 0,
       totalPointsAllTime: team.total_points || 0,
-      seasonsList: ['Current'],
+      seasonsDetails: [{
+        season_name: 'Current Season',
+        division: `Division ${team.division_id}`,
+        rank: '-',
+        wwcd: team.wwcd || 0,
+        place_points: team.place_points || 0,
+        kill_points: team.kill_points || 0,
+        total_points: team.total_points || 0
+      }],
       logo_url: team.logo_url || ''
     };
 
     setSelectedHistoryTeam(targetData);
     setHistoryTeamDivisionName(`Division ${team.division_id}`);
-    
-    const logs = matchLogs
-      .filter((l) => String(l.team_id).trim() === String(team.id).trim())
-      .sort((a, b) => a.game_number - b.game_number);
-    setHistoryTeamMatchLogs(logs);
+    setHistoryTeamSeasonRecords(targetData.seasonsDetails || []);
     
     setIsHistoryTeamModalOpen(true);
   };
@@ -359,10 +387,18 @@ export default function ScrimManagementApp() {
     setSelectedHistoryTeam(team);
     setHistoryTeamDivisionName(divisionName);
 
-    if (team.team_match_logs && Array.isArray(team.team_match_logs)) {
-      setHistoryTeamMatchLogs(team.team_match_logs);
+    if (team.seasonsDetails && Array.isArray(team.seasonsDetails)) {
+      setHistoryTeamSeasonRecords(team.seasonsDetails);
     } else {
-      setHistoryTeamMatchLogs([]);
+      setHistoryTeamSeasonRecords([{
+        season_name: 'Current / Recorded Season',
+        division: divisionName,
+        rank: '-',
+        wwcd: team.wwcd || team.totalWWCD || 0,
+        place_points: team.place_points || team.totalPlacePoints || 0,
+        kill_points: team.kill_points || team.totalKillPoints || 0,
+        total_points: team.total_points || team.totalPointsAllTime || 0
+      }]);
     }
 
     setIsHistoryTeamModalOpen(true);
@@ -1523,7 +1559,7 @@ export default function ScrimManagementApp() {
 
                       <div className="relative z-10 flex flex-col gap-2 pt-2 border-t border-slate-900">
                         <div className="text-xs text-slate-400 truncate">
-                          <span className="text-slate-500 font-medium">ซีซั่นที่เข้าร่วม:</span> <span className="text-slate-200 font-semibold">{team.seasonsList.join(', ')}</span>
+                          <span className="text-slate-500 font-medium">ซีซั่นที่เข้าร่วม:</span> <span className="text-slate-200 font-semibold">{team.seasonsDetails.map((s: any) => s.season_name).join(', ')}</span>
                         </div>
                       </div>
                     </div>
@@ -1719,7 +1755,7 @@ export default function ScrimManagementApp() {
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400 text-xs">
                           <th className="py-3 px-3">#</th>
-                          <th className="py-3 px-3">ทีม (คลิกเพื่อดูแต้มรายเกม)</th>
+                          <th className="py-3 px-3">ทีม (คลิกเพื่อดูสถิติซีซั่น)</th>
                           <th className="py-3 px-3 text-center">WWCD</th>
                           <th className="py-3 px-3 text-center">แต้มอันดับ</th>
                           <th className="py-3 px-3 text-center">แต้มคิล</th>
@@ -1727,23 +1763,44 @@ export default function ScrimManagementApp() {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedSeason.d1_snapshot?.map((t: any, idx: number) => (
-                          <tr 
-                            key={idx} 
-                            onClick={() => handleOpenHistoryTeamModal(t, 'Division 1')}
-                            className="border-b border-slate-900/60 hover:bg-slate-900/80 cursor-pointer transition"
-                            title="คลิกเพื่อดูแต้มรายเกม"
-                          >
-                            <td className="py-3 px-3 font-bold text-slate-400">{idx + 1}</td>
-                            <td className="py-3 px-3 font-semibold text-sky-300 hover:underline flex items-center gap-2">
-                              <span>{t.team_name}</span>
-                            </td>
-                            <td className="py-3 px-3 text-center text-sky-400 font-bold">{t.wwcd || 0}</td>
-                            <td className="py-3 px-3 text-center text-slate-300">{t.place_points || 0}</td>
-                            <td className="py-3 px-3 text-center text-slate-300">{t.kill_points || 0}</td>
-                            <td className="py-3 px-3 text-right font-extrabold text-sky-400 text-base">{t.total_points || 0}</td>
-                          </tr>
-                        ))}
+                        {selectedSeason.d1_snapshot?.map((t: any, idx: number) => {
+                          const key = t.team_name.trim().toLowerCase();
+                          const hofMatch = hallOfFameData.find((h) => h.team_name.trim().toLowerCase() === key);
+                          const teamDataToPass = hofMatch || {
+                            team_name: t.team_name,
+                            logo_url: t.logo_url || '',
+                            totalWWCD: t.wwcd || 0,
+                            totalPlacePoints: t.place_points || 0,
+                            totalKillPoints: t.kill_points || 0,
+                            totalPointsAllTime: t.total_points || 0,
+                            seasonsDetails: [{
+                              season_name: selectedSeason.season_name,
+                              division: 'Division 1',
+                              rank: idx + 1,
+                              wwcd: t.wwcd || 0,
+                              place_points: t.place_points || 0,
+                              kill_points: t.kill_points || 0,
+                              total_points: t.total_points || 0
+                            }]
+                          };
+                          return (
+                            <tr 
+                              key={idx} 
+                              onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 1')}
+                              className="border-b border-slate-900/60 hover:bg-slate-900/80 cursor-pointer transition"
+                              title="คลิกเพื่อดูสถิติซีซั่น"
+                            >
+                              <td className="py-3 px-3 font-bold text-slate-400">{idx + 1}</td>
+                              <td className="py-3 px-3 font-semibold text-sky-300 hover:underline flex items-center gap-2">
+                                <span>{t.team_name}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center text-sky-400 font-bold">{t.wwcd || 0}</td>
+                              <td className="py-3 px-3 text-center text-slate-300">{t.place_points || 0}</td>
+                              <td className="py-3 px-3 text-center text-slate-300">{t.kill_points || 0}</td>
+                              <td className="py-3 px-3 text-right font-extrabold text-sky-400 text-base">{t.total_points || 0}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1756,7 +1813,7 @@ export default function ScrimManagementApp() {
                       <thead>
                         <tr className="border-b border-slate-800 text-slate-400 text-xs">
                           <th className="py-3 px-3">#</th>
-                          <th className="py-3 px-3">ทีม (คลิกเพื่อดูแต้มรายเกม)</th>
+                          <th className="py-3 px-3">ทีม (คลิกเพื่อดูสถิติซีซั่น)</th>
                           <th className="py-3 px-3 text-center">WWCD</th>
                           <th className="py-3 px-3 text-center">แต้มอันดับ</th>
                           <th className="py-3 px-3 text-center">แต้มคิล</th>
@@ -1764,23 +1821,44 @@ export default function ScrimManagementApp() {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedSeason.d2_snapshot?.map((t: any, idx: number) => (
-                          <tr 
-                            key={idx} 
-                            onClick={() => handleOpenHistoryTeamModal(t, 'Division 2')}
-                            className="border-b border-slate-900/60 hover:bg-slate-900/80 cursor-pointer transition"
-                            title="คลิกเพื่อดูแต้มรายเกม"
-                          >
-                            <td className="py-3 px-3 font-bold text-slate-400">{idx + 1}</td>
-                            <td className="py-3 px-3 font-semibold text-sky-300 hover:underline flex items-center gap-2">
-                              <span>{t.team_name}</span>
-                            </td>
-                            <td className="py-3 px-3 text-center text-slate-400 font-bold">{t.wwcd || 0}</td>
-                            <td className="py-3 px-3 text-center text-slate-300">{t.place_points || 0}</td>
-                            <td className="py-3 px-3 text-center text-slate-300">{t.kill_points || 0}</td>
-                            <td className="py-3 px-3 text-right font-extrabold text-slate-200 text-base">{t.total_points || 0}</td>
-                          </tr>
-                        ))}
+                        {selectedSeason.d2_snapshot?.map((t: any, idx: number) => {
+                          const key = t.team_name.trim().toLowerCase();
+                          const hofMatch = hallOfFameData.find((h) => h.team_name.trim().toLowerCase() === key);
+                          const teamDataToPass = hofMatch || {
+                            team_name: t.team_name,
+                            logo_url: t.logo_url || '',
+                            totalWWCD: t.wwcd || 0,
+                            totalPlacePoints: t.place_points || 0,
+                            totalKillPoints: t.kill_points || 0,
+                            totalPointsAllTime: t.total_points || 0,
+                            seasonsDetails: [{
+                              season_name: selectedSeason.season_name,
+                              division: 'Division 2',
+                              rank: idx + 1,
+                              wwcd: t.wwcd || 0,
+                              place_points: t.place_points || 0,
+                              kill_points: t.kill_points || 0,
+                              total_points: t.total_points || 0
+                            }]
+                          };
+                          return (
+                            <tr 
+                              key={idx} 
+                              onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 2')}
+                              className="border-b border-slate-900/60 hover:bg-slate-900/80 cursor-pointer transition"
+                              title="คลิกเพื่อดูสถิติซีซั่น"
+                            >
+                              <td className="py-3 px-3 font-bold text-slate-400">{idx + 1}</td>
+                              <td className="py-3 px-3 font-semibold text-sky-300 hover:underline flex items-center gap-2">
+                                <span>{t.team_name}</span>
+                              </td>
+                              <td className="py-3 px-3 text-center text-slate-400 font-bold">{t.wwcd || 0}</td>
+                              <td className="py-3 px-3 text-center text-slate-300">{t.place_points || 0}</td>
+                              <td className="py-3 px-3 text-center text-slate-300">{t.kill_points || 0}</td>
+                              <td className="py-3 px-3 text-right font-extrabold text-slate-200 text-base">{t.total_points || 0}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1909,10 +1987,10 @@ export default function ScrimManagementApp() {
           </div>
         )}
 
-        {/* Modal สถิติทีม */}
+        {/* Modal สถิติทีม (Hall of Fame / History Season Records) */}
         {isHistoryTeamModalOpen && selectedHistoryTeam && (
           <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl">
               <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
@@ -1924,7 +2002,7 @@ export default function ScrimManagementApp() {
                   </div>
                   <div>
                     <h3 className="text-base font-extrabold text-sky-400">{selectedHistoryTeam.team_name}</h3>
-                    <p className="text-xs text-slate-400">{historyTeamDivisionName}</p>
+                    <p className="text-xs text-slate-400">ประวัติผลงานในแต่ละซีซั่น</p>
                   </div>
                 </div>
                 <button
@@ -1954,25 +2032,25 @@ export default function ScrimManagementApp() {
                 </div>
               </div>
 
-              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-                <div className="text-xs font-semibold text-slate-400 mb-1">ประวัติผลงานรายแมตช์ปัจจุบัน:</div>
-                {historyTeamMatchLogs.length > 0 ? (
-                  historyTeamMatchLogs.map((log: any, i: number) => (
+              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                <div className="text-xs font-semibold text-slate-400 mb-1">ผลงานแยกตามซีซั่น:</div>
+                {historyTeamSeasonRecords.length > 0 ? (
+                  historyTeamSeasonRecords.map((rec: any, i: number) => (
                     <div key={i} className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex justify-between items-center text-xs">
                       <div>
-                        <span className="font-bold text-sky-400">เกมที่ {log.game_number}</span>
-                        <span className="text-slate-400 ml-2">({log.map_name || 'Erangel'})</span>
-                        {log.wwcd === 1 && <span className="ml-2 bg-sky-500/10 border border-sky-500/30 text-sky-400 px-1.5 py-0.5 rounded">WWCD</span>}
+                        <span className="font-bold text-sky-400">{rec.season_name}</span>
+                        <span className="text-slate-400 ml-2">({rec.division} - อันดับ {rec.rank})</span>
+                        {rec.wwcd > 0 && <span className="ml-2 bg-sky-500/10 border border-sky-500/30 text-sky-400 px-1.5 py-0.5 rounded">{rec.wwcd} ไก่</span>}
                       </div>
                       <div className="text-right space-x-2">
-                        <span className="text-slate-400">อันดับ {log.place} ({log.place_points} แต้ม)</span>
-                        <span className="text-slate-300">คิล {log.kill_points}</span>
-                        <span className="font-bold text-sky-400">รวม {(log.place_points || 0) + (log.kill_points || 0)} แต้ม</span>
+                        <span className="text-slate-400">อันดับ {rec.place_points} แต้ม</span>
+                        <span className="text-slate-300">คิล {rec.kill_points}</span>
+                        <span className="font-bold text-sky-400">รวม {rec.total_points} แต้ม</span>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-center text-slate-500 py-6 text-xs">ยังไม่มีประวัติการบันทึกคะแนนรายแมตช์ในซีซั่นนี้</p>
+                  <p className="text-center text-slate-500 py-6 text-xs">ยังไม่มีประวัติผลงานในซีซั่นอื่น ๆ</p>
                 )}
               </div>
 
