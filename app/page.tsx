@@ -180,6 +180,7 @@ export default function ScrimManagementApp() {
 
       const nameA = a.team_name || '';
       const nameB = b.team_name || '';
+      
       const isEngA = /^[A-Za-z]/.test(nameA);
       const isEngB = /^[A-Za-z]/.test(nameB);
 
@@ -902,8 +903,24 @@ export default function ScrimManagementApp() {
     }
   };
 
-  const sortedTeamsD1ByName = [...teamsD1].sort((a, b) => a.team_name.localeCompare(b.team_name));
-  const sortedTeamsD2ByName = [...teamsD2].sort((a, b) => a.team_name.localeCompare(b.team_name));
+  // ฟังก์ชันจัดเรียงชื่อทีมสำหรับหน้า Lineup โดยให้ภาษาอังกฤษขึ้นก่อน และภาษาไทยไปอยู่ด้านล่างสุด
+  const sortTeamsByNameCustom = (teamList: any[]) => {
+    return [...teamList].sort((a, b) => {
+      const nameA = (a.team_name || '').trim();
+      const nameB = (b.team_name || '').trim();
+
+      const isEngA = /^[A-Za-z]/.test(nameA);
+      const isEngB = /^[A-Za-z]/.test(nameB);
+
+      if (isEngA && !isEngB) return -1;
+      if (!isEngA && isEngB) return 1;
+
+      return nameA.localeCompare(nameB, 'th');
+    });
+  };
+
+  const sortedTeamsD1ByName = sortTeamsByNameCustom(teamsD1);
+  const sortedTeamsD2ByName = sortTeamsByNameCustom(teamsD2);
 
   const filteredAllTeamsForAdd = allTeams.filter((t) =>
     t.team_name.toLowerCase().includes(batchSearchQuery.toLowerCase())
