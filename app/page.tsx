@@ -19,6 +19,8 @@ export default function ScrimManagementApp() {
   const [activeTab, setActiveTab] = useState<'latestseason' | 'match' | 'history' | 'halloffame' | 'teams'>('latestseason');
   const [showcaseSubTab, setShowcaseSubTab] = useState<'D1' | 'D2'>('D1');
   const [hallOfFameSubTab, setHallOfFameSubTab] = useState<'all' | 'D1' | 'D2'>('all');
+  const [hallOfFamePage, setHallOfFamePage] = useState<number>(1);
+  const itemsPerPage = 12;
 
   const [teamsD1, setTeamsD1] = useState<any[]>([]);
   const [teamsD2, setTeamsD2] = useState<any[]>([]);
@@ -47,6 +49,8 @@ export default function ScrimManagementApp() {
   const [historyTeamDivisionName, setHistoryTeamDivisionName] = useState<string>('');
   const [historyTeamSeasonRecords, setHistoryTeamSeasonRecords] = useState<any[]>([]);
 
+  const [selectedLatestDivision, setSelectedLatestDivision] = useState<'D1' | 'D2'>('D1');
+
   const [hallOfFameData, setHallOfFameData] = useState<any[]>([]);
   const [hallOfFameSearch, setHallOfFameSearch] = useState('');
 
@@ -66,8 +70,7 @@ export default function ScrimManagementApp() {
   const [newTeamDivision, setNewTeamDivision] = useState<'1' | '2'>('2');
 
   const showcaseRef = useRef<HTMLDivElement>(null);
-  const latestD1Ref = useRef<HTMLDivElement>(null);
-  const latestD2Ref = useRef<HTMLDivElement>(null);
+  const latestInlineRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const hallOfFameRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -264,7 +267,7 @@ export default function ScrimManagementApp() {
         
         teamMap[key].seasonsDetails.push({
           season_name: seasonName,
-          division: 'ดิวิชัน 1',
+          division: 'Division 1',
           rank: idx + 1,
           wwcd: t.wwcd || 0,
           place_points: t.place_points || 0,
@@ -314,7 +317,7 @@ export default function ScrimManagementApp() {
 
         teamMap[key].seasonsDetails.push({
           season_name: seasonName,
-          division: 'ดิวิชัน 2',
+          division: 'Division 2',
           rank: idx + 1,
           wwcd: t.wwcd || 0,
           place_points: t.place_points || 0,
@@ -356,7 +359,7 @@ export default function ScrimManagementApp() {
           d2Points: dbT.division_id === 2 ? (dbT.total_points || 0) : 0,
           seasonsDetails: [{
             season_name: 'Current Season',
-            division: `ดิวิชัน ${dbT.division_id}`,
+            division: `Division ${dbT.division_id}`,
             rank: '-',
             wwcd: dbT.wwcd || 0,
             place_points: dbT.place_points || 0,
@@ -410,7 +413,7 @@ export default function ScrimManagementApp() {
       totalPointsAllTime: team.total_points || 0,
       seasonsDetails: [{
         season_name: 'Current Season',
-        division: `ดิวิชัน ${team.division_id}`,
+        division: `Division ${team.division_id}`,
         rank: '-',
         wwcd: team.wwcd || 0,
         place_points: team.place_points || 0,
@@ -425,7 +428,7 @@ export default function ScrimManagementApp() {
     }
 
     setSelectedHistoryTeam(targetData);
-    setHistoryTeamDivisionName(`ดิวิชัน ${team.division_id}`);
+    setHistoryTeamDivisionName(`Division ${team.division_id}`);
     setHistoryTeamSeasonRecords(targetData.seasonsDetails || []);
     
     setIsHistoryTeamModalOpen(true);
@@ -495,7 +498,7 @@ export default function ScrimManagementApp() {
 
     if (
       !confirm(
-        `ยืนยันการสลับตำแหน่งสล็อตระหว่าง "${swapSourceTeam.team_name}" (ดิวิชัน ${swapSourceTeam.division_id}) กับ "${targetTeam.team_name}" (ดิวิชัน ${targetTeam.division_id})?`
+        `ยืนยันการสลับตำแหน่งสล็อตระหว่าง "${swapSourceTeam.team_name}" (Division ${swapSourceTeam.division_id}) กับ "${targetTeam.team_name}" (Division ${targetTeam.division_id})?`
       )
     )
       return;
@@ -531,11 +534,11 @@ export default function ScrimManagementApp() {
     const currentD2Count = allTeams.filter((t) => t.division_id === 2).length;
 
     if (targetDivision === 1 && currentD1Count >= 16) {
-      alert(`ดิวิชัน 1 เต็มแล้ว`);
+      alert(`Division 1 เต็มแล้ว`);
       return;
     }
     if (targetDivision === 2 && currentD2Count >= 20) {
-      alert(`ดิวิชัน 2 เต็มแล้ว`);
+      alert(`Division 2 เต็มแล้ว`);
       return;
     }
 
@@ -775,7 +778,7 @@ export default function ScrimManagementApp() {
 
   const handleTransitionD1 = async () => {
     if (!isAdmin || !seasonNoteD1.trim()) {
-      alert('กรุณากรอกชื่อซีซั่นของดิวิชัน 1 ก่อน');
+      alert('กรุณากรอกชื่อซีซั่นของ Division 1 ก่อน');
       return;
     }
     if (!confirm(`ยืนยันจบซีซั่น D1 "${seasonNoteD1}" และทำเรื่องโควต้า (ตกชั้น/เลื่อนชั้น)?`)) return;
@@ -825,7 +828,7 @@ export default function ScrimManagementApp() {
 
       await supabase.from('match_logs').delete().in('team_id', d1Data.map(t => t.id));
 
-      alert(`จบซีซั่นดิวิชัน 1 เรียบร้อยแล้ว!`);
+      alert(`จบซีซั่น Division 1 เรียบร้อยแล้ว!`);
       setSeasonNoteD1('');
       fetchTeamsAndLogs();
     } catch (err: any) {
@@ -838,7 +841,7 @@ export default function ScrimManagementApp() {
 
   const handleTransitionD2 = async () => {
     if (!isAdmin || !seasonNoteD2.trim()) {
-      alert('กรุณากรอกชื่อซีซั่นของดิวิชัน 2 ก่อน');
+      alert('กรุณากรอกชื่อซีซั่นของ Division 2 ก่อน');
       return;
     }
     if (!confirm(`ยืนยันจบซีซั่น D2 "${seasonNoteD2}" และทำเรื่องเลื่อนชั้น?`)) return;
@@ -888,7 +891,7 @@ export default function ScrimManagementApp() {
 
       await supabase.from('match_logs').delete().in('team_id', d2Data.map(t => t.id));
 
-      alert(`จบซีซั่นดิวิชัน 2 เรียบร้อยแล้ว!`);
+      alert(`จบซีซั่น Division 2 เรียบร้อยแล้ว!`);
       setSeasonNoteD2('');
       fetchTeamsAndLogs();
     } catch (err: any) {
@@ -931,6 +934,13 @@ export default function ScrimManagementApp() {
 
     return data;
   };
+
+  const allFilteredHofData = getFilteredHallOfFameData();
+  const totalHofPages = Math.ceil(allFilteredHofData.length / itemsPerPage) || 1;
+  const paginatedHofData = allFilteredHofData.slice(
+    (hallOfFamePage - 1) * itemsPerPage,
+    hallOfFamePage * itemsPerPage
+  );
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans relative">
@@ -989,7 +999,7 @@ export default function ScrimManagementApp() {
             ซีซั่นทั้งหมด
           </button>
           <button
-            onClick={() => setActiveTab('halloffame')}
+            onClick={() => { setActiveTab('halloffame'); setHallOfFamePage(1); }}
             className={`py-3 px-4 rounded-xl font-bold transition text-sm border flex-1 text-center ${
               activeTab === 'halloffame'
                 ? 'bg-sky-500/10 border-sky-500 text-sky-400'
@@ -1080,7 +1090,7 @@ export default function ScrimManagementApp() {
                       <option value="">-- เลือกทีม --</option>
                       {allTeams.map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.team_name} (Div {t.division_id})
+                          {t.team_name} (Division {t.division_id})
                         </option>
                       ))}
                     </select>
@@ -1139,7 +1149,7 @@ export default function ScrimManagementApp() {
                             className="bg-slate-950 hover:bg-sky-500/20 border border-slate-700 hover:border-sky-500 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2"
                           >
                             <span>{t.team_name}</span>
-                            <span className="text-[10px] text-sky-400">(Div {t.division_id})</span>
+                            <span className="text-[10px] text-sky-400">(Division {t.division_id})</span>
                           </button>
                         ))
                       ) : (
@@ -1162,8 +1172,8 @@ export default function ScrimManagementApp() {
                     onChange={(e) => setNewTeamDivision(e.target.value as '1' | '2')}
                     className="w-full md:w-48 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100"
                   >
-                    <option value="2">ดิวิชัน 2</option>
-                    <option value="1">ดิวิชัน 1</option>
+                    <option value="2">Division 2</option>
+                    <option value="1">Division 1</option>
                   </select>
                   <button type="submit" disabled={processing} className="bg-sky-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm">
                     บันทึกทีม
@@ -1179,7 +1189,7 @@ export default function ScrimManagementApp() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                    <h4 className="font-bold text-sky-300 text-xs uppercase tracking-wide">จบซีซั่น ดิวิชัน 1 (เลื่อน/ตกชั้น)</h4>
+                    <h4 className="font-bold text-sky-300 text-xs uppercase tracking-wide">จบซีซั่น Division 1 (เลื่อน/ตกชั้น)</h4>
                     <input
                       type="text"
                       value={seasonNoteD1}
@@ -1197,7 +1207,7 @@ export default function ScrimManagementApp() {
                   </div>
 
                   <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                    <h4 className="font-bold text-slate-300 text-xs uppercase tracking-wide">จบซีซั่น ดิวิชัน 2 (เลื่อนชั้น)</h4>
+                    <h4 className="font-bold text-slate-300 text-xs uppercase tracking-wide">จบซีซั่น Division 2 (เลื่อนชั้น)</h4>
                     <input
                       type="text"
                       value={seasonNoteD2}
@@ -1278,7 +1288,7 @@ export default function ScrimManagementApp() {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <span>ดิวิชัน 1</span>
+                  <span>Division 1</span>
                 </button>
                 <button
                   onClick={() => setShowcaseSubTab('D2')}
@@ -1288,7 +1298,7 @@ export default function ScrimManagementApp() {
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  <span>ดิวิชัน 2</span>
+                  <span>Division 2</span>
                 </button>
               </div>
 
@@ -1345,7 +1355,7 @@ export default function ScrimManagementApp() {
                     ))}
                     {sortedTeamsD1ByName.length === 0 && (
                       <div className="col-span-full text-center py-12 text-slate-500 text-xs">
-                        ยังไม่มีรายชื่อทีมในดิวิชัน 1
+                        ยังไม่มีรายชื่อทีมใน Division 1
                       </div>
                     )}
                   </div>
@@ -1386,7 +1396,7 @@ export default function ScrimManagementApp() {
                     ))}
                     {sortedTeamsD2ByName.length === 0 && (
                       <div className="col-span-full text-center py-12 text-slate-500 text-xs">
-                        ยังไม่มีรายชื่อทีมในดิวิชัน 2
+                        ยังไม่มีรายชื่อทีมใน Division 2
                       </div>
                     )}
                   </div>
@@ -1435,7 +1445,7 @@ export default function ScrimManagementApp() {
             <form onSubmit={handleSaveAllBatchScores} className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-                  <h3 className="font-bold text-sky-400 text-sm">ดิวิชัน 1 ({teamsD1.length} ทีม)</h3>
+                  <h3 className="font-bold text-sky-400 text-sm">Division 1 ({teamsD1.length} ทีม)</h3>
                   <div className="w-full">
                     <table className="w-full text-left text-sm">
                       <thead>
@@ -1505,7 +1515,7 @@ export default function ScrimManagementApp() {
                 </div>
 
                 <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
-                  <h3 className="font-bold text-slate-300 text-sm">ดิวิชัน 2 ({teamsD2.length} ทีม)</h3>
+                  <h3 className="font-bold text-slate-300 text-sm">Division 2 ({teamsD2.length} ทีม)</h3>
                   <div className="w-full">
                     <table className="w-full text-left text-sm">
                       <thead>
@@ -1589,7 +1599,7 @@ export default function ScrimManagementApp() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex bg-slate-950 border border-slate-800 rounded-2xl p-1.5 w-full md:w-auto shadow-inner">
                 <button
-                  onClick={() => setHallOfFameSubTab('all')}
+                  onClick={() => { setHallOfFameSubTab('all'); setHallOfFamePage(1); }}
                   className={`py-2.5 px-5 rounded-xl text-xs font-black transition-all ${
                     hallOfFameSubTab === 'all'
                       ? 'bg-sky-500 text-slate-950 shadow-md'
@@ -1599,24 +1609,24 @@ export default function ScrimManagementApp() {
                   รวมทั้งหมด (All-Time)
                 </button>
                 <button
-                  onClick={() => setHallOfFameSubTab('D1')}
+                  onClick={() => { setHallOfFameSubTab('D1'); setHallOfFamePage(1); }}
                   className={`py-2.5 px-5 rounded-xl text-xs font-black transition-all ${
                     hallOfFameSubTab === 'D1'
                       ? 'bg-sky-500 text-slate-950 shadow-md'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  ดิวิชัน 1
+                  Division 1
                 </button>
                 <button
-                  onClick={() => setHallOfFameSubTab('D2')}
+                  onClick={() => { setHallOfFameSubTab('D2'); setHallOfFamePage(1); }}
                   className={`py-2.5 px-5 rounded-xl text-xs font-black transition-all ${
                     hallOfFameSubTab === 'D2'
                       ? 'bg-sky-500 text-slate-950 shadow-md'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  ดิวิชัน 2
+                  Division 2
                 </button>
               </div>
 
@@ -1624,16 +1634,16 @@ export default function ScrimManagementApp() {
                 <input
                   type="text"
                   value={hallOfFameSearch}
-                  onChange={(e) => setHallOfFameSearch(e.target.value)}
+                  onChange={(e) => { setHallOfFameSearch(e.target.value); setHallOfFamePage(1); }}
                   placeholder="พิมพ์ชื่อทีมเพื่อค้นหา..."
                   className="w-full sm:w-64 bg-slate-950 border border-sky-500/40 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-400"
                 />
                 <button
-                  onClick={() => handleDownloadImage(hallOfFameRef, `Hall_Of_Fame_${hallOfFameSubTab}`)}
+                  onClick={() => handleDownloadImage(hallOfFameRef, `Hall_Of_Fame_${hallOfFameSubTab}_Page_${hallOfFamePage}`)}
                   disabled={isDownloading}
                   className="w-full sm:w-auto bg-sky-500 hover:bg-sky-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50 shrink-0"
                 >
-                  <span>{isDownloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูป Hall of Fame'}</span>
+                  <span>{isDownloading ? 'กำลังสร้างรูป...' : `ดาวน์โหลดรูปหน้านี้ (หน้า ${hallOfFamePage})`}</span>
                 </button>
               </div>
             </div>
@@ -1641,20 +1651,21 @@ export default function ScrimManagementApp() {
             <div ref={hallOfFameRef} className="bg-slate-950 p-6 rounded-2xl border border-slate-800/80 space-y-6">
               <div className="text-center pb-2 border-b border-slate-800/80">
                 <h2 className="text-2xl font-black text-sky-400 tracking-wider">
-                  HALL OF FAME ({hallOfFameSubTab === 'all' ? 'ALL-TIME' : hallOfFameSubTab === 'D1' ? 'ดิวิชัน 1' : 'ดิวิชัน 2'})
+                  HALL OF FAME ({hallOfFameSubTab === 'all' ? 'ALL-TIME' : hallOfFameSubTab})
                 </h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">League Legends & Statistics Showcase</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">League Legends & Statistics Showcase (แสดงหน้าละ 12 ทีม)</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {getFilteredHallOfFameData().map((team, idx) => {
+                {paginatedHofData.map((team, idx) => {
+                  const globalIdx = (hallOfFamePage - 1) * itemsPerPage + idx;
                   const displayWWCD = hallOfFameSubTab === 'D1' ? (team.d1WWCD || 0) : hallOfFameSubTab === 'D2' ? (team.d2WWCD || 0) : (team.totalWWCD || 0);
                   const displayPoints = hallOfFameSubTab === 'D1' ? (team.d1Points || 0) : hallOfFameSubTab === 'D2' ? (team.d2Points || 0) : (team.totalPointsAllTime || 0);
 
                   return (
                     <div
-                      key={idx}
-                      onClick={() => handleOpenHistoryTeamModal(team, hallOfFameSubTab === 'all' ? 'Hall of Fame' : hallOfFameSubTab === 'D1' ? 'ดิวิชัน 1' : 'ดิวิชัน 2')}
+                      key={globalIdx}
+                      onClick={() => handleOpenHistoryTeamModal(team, hallOfFameSubTab === 'all' ? 'Hall of Fame' : hallOfFameSubTab)}
                       className="relative overflow-hidden bg-slate-900 border border-slate-800 hover:border-sky-500/60 rounded-2xl p-5 transition-all duration-300 shadow-xl flex items-center justify-between gap-4 group cursor-pointer hover:scale-[1.01]"
                     >
                       {team.logo_url && (
@@ -1675,7 +1686,7 @@ export default function ScrimManagementApp() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-sky-400 font-extrabold px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/20">
-                              #{idx + 1}
+                              #{globalIdx + 1}
                             </span>
                             {hallOfFameSubTab === 'all' && team.d1Titles > 0 && (
                               <span className="text-[10px] bg-sky-500/20 border border-sky-500/40 text-sky-300 px-2 py-0.5 rounded font-bold">
@@ -1696,186 +1707,248 @@ export default function ScrimManagementApp() {
                     </div>
                   );
                 })}
-                {getFilteredHallOfFameData().length === 0 && (
+                {paginatedHofData.length === 0 && (
                   <div className="col-span-full text-center py-16 text-slate-500 text-sm">
                     ไม่พบข้อมูลทีมในหมวดหมู่นี้
                   </div>
                 )}
               </div>
+
+              {/* Pagination Controls */}
+              {totalHofPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-800">
+                  <button
+                    onClick={() => setHallOfFamePage((prev) => Math.max(prev - 1, 1))}
+                    disabled={hallOfFamePage === 1}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-slate-300 hover:border-sky-500 disabled:opacity-30 disabled:hover:border-slate-850 transition"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  <span className="text-xs font-bold text-sky-400 px-3">
+                    หน้า {hallOfFamePage} จาก {totalHofPages}
+                  </span>
+                  <button
+                    onClick={() => setHallOfFamePage((prev) => Math.min(prev + 1, totalHofPages))}
+                    disabled={hallOfFamePage === totalHofPages}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 border border-slate-800 text-slate-300 hover:border-sky-500 disabled:opacity-30 disabled:hover:border-slate-850 transition"
+                  >
+                    ถัดไป
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : activeTab === 'latestseason' ? (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div className="flex bg-slate-950 border border-slate-800 rounded-2xl p-1.5 w-full sm:w-auto shadow-inner">
+                <button
+                  onClick={() => setSelectedLatestDivision('D1')}
+                  className={`py-3 px-8 rounded-xl text-sm font-black transition-all ${
+                    selectedLatestDivision === 'D1'
+                      ? 'bg-sky-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Division 1
+                </button>
+                <button
+                  onClick={() => setSelectedLatestDivision('D2')}
+                  className={`py-3 px-8 rounded-xl text-sm font-black transition-all ${
+                    selectedLatestDivision === 'D2'
+                      ? 'bg-sky-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Division 2
+                </button>
+              </div>
+
+              <button
+                onClick={() => handleDownloadImage(latestInlineRef, `Leaderboard_${selectedLatestDivision}`)}
+                disabled={isDownloading}
+                className="w-full sm:w-auto bg-sky-500 hover:bg-sky-400 text-slate-950 font-black px-6 py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 disabled:opacity-50"
+              >
+                <span>{isDownloading ? 'กำลังสร้างรูป...' : `ดาวน์โหลดรูปตาราง (${selectedLatestDivision})`}</span>
+              </button>
+            </div>
+
+            {/* ส่วนแสดงตารางคะแนนแบบแบ่งฝั่งซ้าย-ขวาพร้อมช่องขยายและโลโก้ทีม */}
+            <div ref={latestInlineRef} className="relative overflow-hidden bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
+              {currentBgUrl && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                  <img src={currentBgUrl} alt="" className="w-[360px] h-auto object-contain opacity-[0.15] blur-[1px]" />
+                </div>
+              )}
               
-              {/* Division 1 Leaderboard */}
-              <div className="space-y-3">
-                <div className="flex justify-end px-2">
-                  <button
-                    onClick={() => handleDownloadImage(latestD1Ref, 'Leaderboard_Division_1')}
-                    disabled={isDownloading}
-                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md shadow-sky-500/20 disabled:opacity-50"
-                  >
-                    <span>{isDownloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดตาราง D1'}</span>
-                  </button>
+              <div className="relative z-10 space-y-4">
+                <div className="text-center pb-2 border-b border-slate-800/80">
+                  <h4 className="text-lg font-black text-sky-400 tracking-wider">
+                    CONYSWEETxiSOTOPE - {selectedLatestDivision === 'D1' ? 'DIVISION 1' : 'DIVISION 2'}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Official Standings Showcase</p>
                 </div>
 
-                <div ref={latestD1Ref} className="relative overflow-hidden bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                  {currentBgUrl && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                      <img src={currentBgUrl} alt="" className="w-[300px] h-auto object-contain opacity-[0.06] blur-[1px]" />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedLatestDivision === 'D1' ? (
+                    <>
+                      {/* D1 ฝั่งซ้าย: Top 1-8 */}
+                      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 space-y-2">
+                        <div className="text-xs font-extrabold text-sky-400 uppercase tracking-wide border-b border-slate-800 pb-2">Top 1 - 8</div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="text-slate-400 border-b border-slate-800/80">
+                                <th className="py-2.5 px-2 w-10">#</th>
+                                <th className="py-2.5 px-3">ทีม</th>
+                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
+                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamsD1.slice(0, 8).map((team, idx) => (
+                                <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
+                                  <td className="py-3 px-2 font-bold text-sky-400">{idx + 1}</td>
+                                  <td className="py-3 px-3 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-6 h-6 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                        {team.logo_url ? (
+                                          <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          <span className="text-[10px] font-bold text-sky-400">{team.team_name.charAt(0)}</span>
+                                        )}
+                                      </div>
+                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-center font-bold text-sky-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-2 text-right font-extrabold text-sky-300">{team.total_points || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* D1 ฝั่งขวา: Top 9-16 */}
+                      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 space-y-2">
+                        <div className="text-xs font-extrabold text-sky-400 uppercase tracking-wide border-b border-slate-800 pb-2">Top 9 - 16</div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="text-slate-400 border-b border-slate-800/80">
+                                <th className="py-2.5 px-2 w-10">#</th>
+                                <th className="py-2.5 px-3">ทีม</th>
+                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
+                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamsD1.slice(8, 16).map((team, idx) => (
+                                <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
+                                  <td className="py-3 px-2 font-bold text-sky-400">{idx + 9}</td>
+                                  <td className="py-3 px-3 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-6 h-6 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                        {team.logo_url ? (
+                                          <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          <span className="text-[10px] font-bold text-sky-400">{team.team_name.charAt(0)}</span>
+                                        )}
+                                      </div>
+                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-center font-bold text-sky-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-2 text-right font-extrabold text-sky-300">{team.total_points || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* D2 ฝั่งซ้าย: Top 1-10 */}
+                      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 space-y-2">
+                        <div className="text-xs font-extrabold text-slate-300 uppercase tracking-wide border-b border-slate-800 pb-2">Top 1 - 10</div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="text-slate-400 border-b border-slate-800/80">
+                                <th className="py-2.5 px-2 w-10">#</th>
+                                <th className="py-2.5 px-3">ทีม</th>
+                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
+                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamsD2.slice(0, 10).map((team, idx) => (
+                                <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
+                                  <td className="py-3 px-2 font-bold text-slate-400">{idx + 1}</td>
+                                  <td className="py-3 px-3 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-6 h-6 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                        {team.logo_url ? (
+                                          <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          <span className="text-[10px] font-bold text-slate-400">{team.team_name.charAt(0)}</span>
+                                        )}
+                                      </div>
+                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-center font-bold text-slate-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-2 text-right font-extrabold text-slate-200">{team.total_points || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* D2 ฝั่งขวา: Top 11-20 */}
+                      <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl p-4 space-y-2">
+                        <div className="text-xs font-extrabold text-slate-300 uppercase tracking-wide border-b border-slate-800 pb-2">Top 11 - 20</div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs">
+                            <thead>
+                              <tr className="text-slate-400 border-b border-slate-800/80">
+                                <th className="py-2.5 px-2 w-10">#</th>
+                                <th className="py-2.5 px-3">ทีม</th>
+                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
+                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamsD2.slice(10, 20).map((team, idx) => (
+                                <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
+                                  <td className="py-3 px-2 font-bold text-slate-400">{idx + 11}</td>
+                                  <td className="py-3 px-3 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-6 h-6 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                        {team.logo_url ? (
+                                          <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                          <span className="text-[10px] font-bold text-slate-400">{team.team_name.charAt(0)}</span>
+                                        )}
+                                      </div>
+                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-2 text-center font-bold text-slate-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-2 text-right font-extrabold text-slate-200">{team.total_points || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
                   )}
-                  <div className="relative z-10 space-y-4">
-                    <h2 className="text-xl font-bold text-sky-400 flex items-center justify-between">
-                      <span>ดิวิชัน 1 (Leaderboard)</span>
-                      <span className="text-xs font-normal text-slate-400">({teamsD1.length}/16 ทีม)</span>
-                    </h2>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-800 text-slate-400 text-xs">
-                            <th className="py-3 px-2">อันดับ</th>
-                            <th className="py-3 px-2">ชื่อทีม</th>
-                            <th className="py-3 px-2 text-center">WWCD</th>
-                            <th className="py-3 px-2 text-center">แต้มอันดับ</th>
-                            <th className="py-3 px-2 text-center">แต้มคิล</th>
-                            <th className="py-3 px-2 text-right">แต้มรวม</th>
-                            {isAdmin && <th className="py-3 px-2 text-center">จัดการ</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {teamsD1.map((team, idx) => (
-                            <tr
-                              key={team.id}
-                              className="border-b border-slate-800/50 hover:bg-slate-800/30 transition cursor-pointer"
-                              onClick={() => handleOpenTeamDetailModal(team)}
-                            >
-                              <td className="py-3 px-2 font-bold text-sky-400">{idx + 1}</td>
-                              <td className="py-3 px-2 font-semibold text-slate-200">{team.team_name}</td>
-                              <td className="py-3 px-2 text-center text-sky-400 font-bold">{team.wwcd || 0}</td>
-                              <td className="py-3 px-2 text-center text-slate-300">{team.place_points || 0}</td>
-                              <td className="py-3 px-2 text-center text-slate-300">{team.kill_points || 0}</td>
-                              <td className="py-3 px-2 text-right font-extrabold text-sky-400 text-base">{team.total_points || 0}</td>
-                              {isAdmin && (
-                                <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex items-center justify-center gap-1">
-                                    <button
-                                      onClick={() => handleOpenSwapModal(team)}
-                                      className="bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-slate-950 px-2 py-1 rounded-lg text-xs font-bold transition"
-                                      title="สลับทีมขึ้น/ลงดิวิชัน"
-                                    >
-                                      สลับ
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteTeam(team.id, team.team_name)}
-                                      className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-slate-950 px-2 py-1 rounded-lg text-xs font-bold transition"
-                                    >
-                                      ลบ
-                                    </button>
-                                  </div>
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                          {teamsD1.length === 0 && (
-                            <tr>
-                              <td colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-slate-500 text-xs">
-                                ยังไม่มีข้อมูลทีมในดิวิชัน 1
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
                 </div>
               </div>
-
-              {/* Division 2 Leaderboard */}
-              <div className="space-y-3">
-                <div className="flex justify-end px-2">
-                  <button
-                    onClick={() => handleDownloadImage(latestD2Ref, 'Leaderboard_Division_2')}
-                    disabled={isDownloading}
-                    className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-md shadow-sky-500/20 disabled:opacity-50"
-                  >
-                    <span>{isDownloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดตาราง D2'}</span>
-                  </button>
-                </div>
-
-                <div ref={latestD2Ref} className="relative overflow-hidden bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-                  {currentBgUrl && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                      <img src={currentBgUrl} alt="" className="w-[300px] h-auto object-contain opacity-[0.06] blur-[1px]" />
-                    </div>
-                  )}
-                  <div className="relative z-10 space-y-4">
-                    <h2 className="text-xl font-bold text-slate-300 flex items-center justify-between">
-                      <span>ดิวิชัน 2 (Leaderboard)</span>
-                      <span className="text-xs font-normal text-slate-400">({teamsD2.length}/20 ทีม)</span>
-                    </h2>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-slate-800 text-slate-400 text-xs">
-                            <th className="py-3 px-2">อันดับ</th>
-                            <th className="py-3 px-2">ชื่อทีม</th>
-                            <th className="py-3 px-2 text-center">WWCD</th>
-                            <th className="py-3 px-2 text-center">แต้มอันดับ</th>
-                            <th className="py-3 px-2 text-center">แต้มคิล</th>
-                            <th className="py-3 px-2 text-right">แต้มรวม</th>
-                            {isAdmin && <th className="py-3 px-2 text-center">จัดการ</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {teamsD2.map((team, idx) => (
-                            <tr
-                              key={team.id}
-                              className="border-b border-slate-800/50 hover:bg-slate-800/30 transition cursor-pointer"
-                              onClick={() => handleOpenTeamDetailModal(team)}
-                            >
-                              <td className="py-3 px-2 font-bold text-slate-400">{idx + 1}</td>
-                              <td className="py-3 px-2 font-semibold text-slate-200">{team.team_name}</td>
-                              <td className="py-3 px-2 text-center text-slate-400 font-bold">{team.wwcd || 0}</td>
-                              <td className="py-3 px-2 text-center text-slate-300">{team.place_points || 0}</td>
-                              <td className="py-3 px-2 text-center text-slate-300">{team.kill_points || 0}</td>
-                              <td className="py-3 px-2 text-right font-extrabold text-slate-200 text-base">{team.total_points || 0}</td>
-                              {isAdmin && (
-                                <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex items-center justify-center gap-1">
-                                    <button
-                                      onClick={() => handleOpenSwapModal(team)}
-                                      className="bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-slate-950 px-2 py-1 rounded-lg text-xs font-bold transition"
-                                      title="สลับทีมขึ้น/ลงดิวิชัน"
-                                    >
-                                      สลับ
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteTeam(team.id, team.team_name)}
-                                      className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500 hover:text-slate-950 px-2 py-1 rounded-lg text-xs font-bold transition"
-                                    >
-                                      ลบ
-                                    </button>
-                                  </div>
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                          {teamsD2.length === 0 && (
-                            <tr>
-                              <td colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-slate-500 text-xs">
-                                ยังไม่มีข้อมูลทีมในดิวิชัน 2
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         ) : activeTab === 'history' ? (
@@ -1916,7 +1989,7 @@ export default function ScrimManagementApp() {
               <div ref={historyRef} className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800/80">
                 {/* Division 1 History */}
                 <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-                  <h3 className="font-extrabold text-sky-400 text-lg">ดิวิชัน 1 ({selectedSeason.season_name})</h3>
+                  <h3 className="font-extrabold text-sky-400 text-lg">Division 1 ({selectedSeason.season_name})</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                       <thead>
@@ -1943,7 +2016,7 @@ export default function ScrimManagementApp() {
                               totalPointsAllTime: t.total_points || 0,
                               seasonsDetails: [{
                                 season_name: selectedSeason.season_name,
-                                division: 'ดิวิชัน 1',
+                                division: 'Division 1',
                                 rank: idx + 1,
                                 wwcd: t.wwcd || 0,
                                 place_points: t.place_points || 0,
@@ -1954,7 +2027,7 @@ export default function ScrimManagementApp() {
                             return (
                               <tr 
                                 key={idx} 
-                                onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'ดิวิชัน 1')}
+                                onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 1')}
                                 className="border-b border-slate-800/50 hover:bg-slate-800/80 cursor-pointer transition"
                                 title="คลิกเพื่อดูสถิติซีซั่น"
                               >
@@ -1972,7 +2045,7 @@ export default function ScrimManagementApp() {
                         ) : (
                           <tr>
                             <td colSpan={6} className="text-center py-8 text-slate-500 text-xs">
-                              ไม่มีข้อมูลการแข่งขันดิวิชัน 1 ในซีซั่นนี้
+                              ไม่มีข้อมูลการแข่งขัน Division 1 ในซีซั่นนี้
                             </td>
                           </tr>
                         )}
@@ -1983,7 +2056,7 @@ export default function ScrimManagementApp() {
 
                 {/* Division 2 History */}
                 <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-                  <h3 className="font-extrabold text-slate-300 text-lg">ดิวิชัน 2 ({selectedSeason.season_name})</h3>
+                  <h3 className="font-extrabold text-slate-300 text-lg">Division 2 ({selectedSeason.season_name})</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
                       <thead>
@@ -2010,7 +2083,7 @@ export default function ScrimManagementApp() {
                               totalPointsAllTime: t.total_points || 0,
                               seasonsDetails: [{
                                 season_name: selectedSeason.season_name,
-                                division: 'ดิวิชัน 2',
+                                division: 'Division 2',
                                 rank: idx + 1,
                                 wwcd: t.wwcd || 0,
                                 place_points: t.place_points || 0,
@@ -2021,7 +2094,7 @@ export default function ScrimManagementApp() {
                             return (
                               <tr 
                                 key={idx} 
-                                onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'ดิวิชัน 2')}
+                                onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 2')}
                                 className="border-b border-slate-800/50 hover:bg-slate-800/80 cursor-pointer transition"
                                 title="คลิกเพื่อดูสถิติซีซั่น"
                               >
@@ -2039,7 +2112,7 @@ export default function ScrimManagementApp() {
                         ) : (
                           <tr>
                             <td colSpan={6} className="text-center py-8 text-slate-500 text-xs">
-                              ไม่มีข้อมูลการแข่งขันดิวิชัน 2 ในซีซั่นนี้
+                              ไม่มีข้อมูลการแข่งขัน Division 2 ในซีซั่นนี้
                             </td>
                           </tr>
                         )}
@@ -2072,13 +2145,13 @@ export default function ScrimManagementApp() {
                 <span className="text-slate-400">ทีมที่ต้องการสลับตำแหน่ง:</span>
                 <div className="font-extrabold text-sky-400 text-sm">
                   {swapSourceTeam.team_name}{' '}
-                  <span className="text-xs text-slate-400 font-normal">( ดิวิชัน {swapSourceTeam.division_id} )</span>
+                  <span className="text-xs text-slate-400 font-normal">( Division {swapSourceTeam.division_id} )</span>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-slate-300">
-                  เลือกทีมจากดิวิชัน {swapSourceTeam.division_id === 1 ? '2' : '1'} ที่จะสลับขึ้นมาแทน (คลิกที่ชื่อทีม):
+                  เลือกทีมจาก Division {swapSourceTeam.division_id === 1 ? '2' : '1'} ที่จะสลับขึ้นมาแทน (คลิกที่ชื่อทีม):
                 </label>
                 
                 <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto pr-1 bg-slate-950 border border-slate-800 rounded-xl p-2">
