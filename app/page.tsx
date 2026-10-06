@@ -16,7 +16,7 @@ const placementPointsMap: Record<number, number> = {
 };
 
 export default function ScrimManagementApp() {
-  const [activeTab, setActiveTab] = useState<'latestseason' | 'match' | 'history' | 'halloffame' | 'teams'>('latestseason');
+  const [activeTab, setActiveTab] = useState<'latestseason' | 'match' | 'history' | 'halloffame' | 'teams'>('teams');
   const [showcaseSubTab, setShowcaseSubTab] = useState<'D1' | 'D2'>('D1');
   const [hallOfFameSubTab, setHallOfFameSubTab] = useState<'all' | 'D1' | 'D2'>('all');
   const [hallOfFamePage, setHallOfFamePage] = useState<number>(1);
@@ -40,6 +40,9 @@ export default function ScrimManagementApp() {
 
   const [selectedTeamForLogo, setSelectedTeamForLogo] = useState<string>('');
   const [teamLogoFile, setTeamLogoFile] = useState<File | null>(null);
+
+  const [newTeamName, setNewTeamName] = useState<string>('');
+  const [newTeamDivision, setNewTeamDivision] = useState<'1' | '2'>('2');
 
   const [isTeamDetailModalOpen, setIsTeamDetailModalOpen] = useState(false);
   const [selectedTeamDetail, setSelectedTeamDetail] = useState<any>(null);
@@ -68,9 +71,6 @@ export default function ScrimManagementApp() {
 
   const [seasonNoteD1, setSeasonNoteD1] = useState('');
   const [seasonNoteD2, setSeasonNoteD2] = useState('');
-
-  const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamDivision, setNewTeamDivision] = useState<'1' | '2'>('2');
 
   const showcaseRef = useRef<HTMLDivElement>(null);
   const latestInlineRef = useRef<HTMLDivElement>(null);
@@ -586,6 +586,31 @@ export default function ScrimManagementApp() {
     }
   };
 
+  const handleDeleteAllTeamsInDivision = async (divisionId: number) => {
+    if (!isAdmin) return;
+    const divName = divisionId === 1 ? 'Division 1' : 'Division 2';
+    if (!confirm(`⚠️ คำเตือน: คุณต้องการลบรายชื่อทีมทั้งหมดใน "${divName}" ออกจากระบบใช่หรือไม่? (การกระทำนี้ไม่สามารถย้อนกลับได้)`)) return;
+
+    setProcessing(true);
+    try {
+      const targetTeams = allTeams.filter((t) => t.division_id === divisionId);
+      const teamIds = targetTeams.map((t) => t.id);
+
+      if (teamIds.length > 0) {
+        await supabase.from('match_logs').delete().in('team_id', teamIds);
+        await supabase.from('teams').delete().in('id', teamIds);
+      }
+
+      alert(`ลบรายชื่อทีมทั้งหมดใน ${divName} เรียบร้อยแล้ว!`);
+      await fetchTeamsAndLogs();
+    } catch (err: any) {
+      console.error(err);
+      alert('เกิดข้อผิดพลาดในการลบทีม: ' + (err.message || ''));
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleUploadTeamLogo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin || !selectedTeamForLogo || !teamLogoFile) {
@@ -712,7 +737,6 @@ export default function ScrimManagementApp() {
             (l) => String(l.team_id).trim() === String(team.id).trim() && Number(l.game_number) === batchGameNumber
           );
 
-          // คำนวณผลรวมใหม่ทั้งหมดของทีมนี้จาก match_logs ทุกเกม (เพื่อให้คะแนนรวมสะสมแม่นยำที่สุด)
           const otherLogs = matchLogs.filter(
             (l) => String(l.team_id).trim() === String(team.id).trim() && Number(l.game_number) !== batchGameNumber
           );
@@ -1267,6 +1291,25 @@ export default function ScrimManagementApp() {
                     บันทึกทีม
                   </button>
                 </form>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAllTeamsInDivision(1)}
+                    disabled={processing}
+                    className="w-full bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-slate-950 border border-rose-500/30 py-2.5 px-4 rounded-xl text-xs font-bold transition disabled:opacity-50"
+                  >
+                    🗑️ ลบทีมทั้งหมดใน Division 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAllTeamsInDivision(2)}
+                    disabled={processing}
+                    className="w-full bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-slate-950 border border-rose-500/30 py-2.5 px-4 rounded-xl text-xs font-bold transition disabled:opacity-50"
+                  >
+                    🗑️ ลบทีมทั้งหมดใน Division 2
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1424,6 +1467,33 @@ export default function ScrimManagementApp() {
                           #{idx + 1}
                         </span>
 
+                        {isAdmin && (
+                          <div className="absolute top-2 right-2 flex items-center gap-1.5 z-20">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenSwapModal(team);
+                              }}
+                              className="bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-slate-950 border border-sky-500/40 px-2 py-1 rounded text-[10px] font-bold transition shadow"
+                              title="สลับดิวิชัน"
+                            >
+                              สลับ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTeam(team.id, team.team_name);
+                              }}
+                              className="bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 px-2 py-1 rounded text-[10px] font-bold transition shadow"
+                              title="ลบทีม"
+                            >
+                              ลบ
+                            </button>
+                          </div>
+                        )}
+
                         <div className="relative z-10 w-24 h-24 rounded-2xl bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-xl mt-2">
                           {team.logo_url ? (
                             <img src={team.logo_url} alt={team.team_name} className="w-full h-full object-cover" />
@@ -1464,6 +1534,33 @@ export default function ScrimManagementApp() {
                         <span className="absolute top-2 left-2.5 text-[10px] font-black text-sky-400/80 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20">
                           #{idx + 1}
                         </span>
+
+                        {isAdmin && (
+                          <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenSwapModal(team);
+                              }}
+                              className="bg-sky-500/20 hover:bg-sky-500 text-sky-300 hover:text-slate-950 border border-sky-500/40 px-1.5 py-0.5 rounded text-[9px] font-bold transition shadow"
+                              title="สลับดิวิชัน"
+                            >
+                              สลับ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTeam(team.id, team.team_name);
+                              }}
+                              className="bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/40 px-1.5 py-0.5 rounded text-[9px] font-bold transition shadow"
+                              title="ลบทีม"
+                            >
+                              ลบ
+                            </button>
+                          </div>
+                        )}
 
                         <div className="relative z-10 w-16 h-16 rounded-xl bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow-lg">
                           {team.logo_url ? (
@@ -1541,7 +1638,6 @@ export default function ScrimManagementApp() {
               </div>
             </div>
 
-            {/* ปุ่มเลือกสลับดิวิชันแบบขยายใหญ่เต็มตา */}
             <div className="flex bg-slate-950 border border-slate-800 rounded-2xl p-2 w-full gap-3 shadow-inner">
               <button
                 type="button"
@@ -1572,7 +1668,6 @@ export default function ScrimManagementApp() {
                 <div className="space-y-4">
                   <h3 className="font-bold text-sky-400 text-sm">Division 1 (16 ทีม - แยกฝั่งซ้าย/ขวา)</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* ฝั่งซ้าย D1 (1-8) */}
                     <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div className="text-xs font-extrabold text-sky-400 uppercase border-b border-slate-800 pb-2">ซ้าย: ทีมที่ 1 - 8</div>
                       <table className="w-full text-left text-sm">
@@ -1644,7 +1739,6 @@ export default function ScrimManagementApp() {
                       </table>
                     </div>
 
-                    {/* ฝั่งขวา D1 (9-16) */}
                     <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div className="text-xs font-extrabold text-sky-400 uppercase border-b border-slate-800 pb-2">ขวา: ทีมที่ 9 - 16</div>
                       <table className="w-full text-left text-sm">
@@ -1721,7 +1815,6 @@ export default function ScrimManagementApp() {
                 <div className="space-y-4">
                   <h3 className="font-bold text-slate-300 text-sm">Division 2 (20 ทีม - แยกฝั่งซ้าย/ขวา)</h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* ฝั่งซ้าย D2 (1-10) */}
                     <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div className="text-xs font-extrabold text-slate-300 uppercase border-b border-slate-800 pb-2">ซ้าย: ทีมที่ 1 - 10</div>
                       <table className="w-full text-left text-sm">
@@ -1793,7 +1886,6 @@ export default function ScrimManagementApp() {
                       </table>
                     </div>
 
-                    {/* ฝั่งขวา D2 (11-20) */}
                     <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div className="text-xs font-extrabold text-slate-300 uppercase border-b border-slate-800 pb-2">ขวา: ทีมที่ 11 - 20</div>
                       <table className="w-full text-left text-sm">
