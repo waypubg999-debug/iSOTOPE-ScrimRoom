@@ -2171,30 +2171,34 @@ export default function ScrimManagementApp() {
                           <table className="w-full text-left text-xs">
                             <thead>
                               <tr className="text-slate-400 border-b border-slate-800/80">
-                                <th className="py-2.5 px-2 w-10">#</th>
-                                <th className="py-2.5 px-3">ทีม</th>
-                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                <th className="py-2.5 px-1.5 w-8">#</th>
+                                <th className="py-2.5 px-2">ทีม</th>
+                                <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                               </tr>
                             </thead>
                             <tbody>
                               {teamsD1.slice(0, 8).map((team, idx) => (
                                 <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
-                                  <td className="py-3 px-2 font-bold text-sky-400">{idx + 1}</td>
-                                  <td className="py-3 px-3 font-semibold text-slate-200">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="w-8 h-8 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                  <td className="py-3 px-1.5 font-bold text-sky-400">{idx + 1}</td>
+                                  <td className="py-3 px-2 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                         {team.logo_url ? (
                                           <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                          <span className="text-[11px] font-bold text-sky-400">{team.team_name.charAt(0)}</span>
+                                          <span className="text-[10px] font-bold text-sky-400">{team.team_name.charAt(0)}</span>
                                         )}
                                       </div>
-                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                      <span className="truncate max-w-[120px]">{team.team_name}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-2 text-center font-bold text-sky-400">{team.wwcd || 0}</td>
-                                  <td className="py-3 px-2 text-right font-extrabold text-sky-300">{team.total_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-bold text-sky-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.place_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.kill_points || 0}</td>
+                                  <td className="py-3 px-1.5 text-right font-extrabold text-sky-300">{team.total_points || 0}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2208,30 +2212,34 @@ export default function ScrimManagementApp() {
                           <table className="w-full text-left text-xs">
                             <thead>
                               <tr className="text-slate-400 border-b border-slate-800/80">
-                                <th className="py-2.5 px-2 w-10">#</th>
-                                <th className="py-2.5 px-3">ทีม</th>
-                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                <th className="py-2.5 px-1.5 w-8">#</th>
+                                <th className="py-2.5 px-2">ทีม</th>
+                                <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                               </tr>
                             </thead>
                             <tbody>
                               {teamsD1.slice(8, 16).map((team, idx) => (
                                 <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
-                                  <td className="py-3 px-2 font-bold text-sky-400">{idx + 9}</td>
-                                  <td className="py-3 px-3 font-semibold text-slate-200">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="w-8 h-8 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                  <td className="py-3 px-1.5 font-bold text-sky-400">{idx + 9}</td>
+                                  <td className="py-3 px-2 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                         {team.logo_url ? (
                                           <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                          <span className="text-[11px] font-bold text-sky-400">{team.team_name.charAt(0)}</span>
+                                          <span className="text-[10px] font-bold text-sky-400">{team.team_name.charAt(0)}</span>
                                         )}
                                       </div>
-                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                      <span className="truncate max-w-[120px]">{team.team_name}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-2 text-center font-bold text-sky-400">{team.wwcd || 0}</td>
-                                  <td className="py-3 px-2 text-right font-extrabold text-sky-300">{team.total_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-bold text-sky-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.place_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.kill_points || 0}</td>
+                                  <td className="py-3 px-1.5 text-right font-extrabold text-sky-300">{team.total_points || 0}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2247,30 +2255,34 @@ export default function ScrimManagementApp() {
                           <table className="w-full text-left text-xs">
                             <thead>
                               <tr className="text-slate-400 border-b border-slate-800/80">
-                                <th className="py-2.5 px-2 w-10">#</th>
-                                <th className="py-2.5 px-3">ทีม</th>
-                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                <th className="py-2.5 px-1.5 w-8">#</th>
+                                <th className="py-2.5 px-2">ทีม</th>
+                                <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                               </tr>
                             </thead>
                             <tbody>
                               {teamsD2.slice(0, 10).map((team, idx) => (
                                 <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
-                                  <td className="py-3 px-2 font-bold text-slate-400">{idx + 1}</td>
-                                  <td className="py-3 px-3 font-semibold text-slate-200">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                  <td className="py-3 px-1.5 font-bold text-slate-400">{idx + 1}</td>
+                                  <td className="py-3 px-2 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                         {team.logo_url ? (
                                           <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                          <span className="text-[11px] font-bold text-slate-400">{team.team_name.charAt(0)}</span>
+                                          <span className="text-[10px] font-bold text-slate-400">{team.team_name.charAt(0)}</span>
                                         )}
                                       </div>
-                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                      <span className="truncate max-w-[120px]">{team.team_name}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-2 text-center font-bold text-slate-400">{team.wwcd || 0}</td>
-                                  <td className="py-3 px-2 text-right font-extrabold text-slate-200">{team.total_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-bold text-slate-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.place_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.kill_points || 0}</td>
+                                  <td className="py-3 px-1.5 text-right font-extrabold text-slate-200">{team.total_points || 0}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2284,30 +2296,34 @@ export default function ScrimManagementApp() {
                           <table className="w-full text-left text-xs">
                             <thead>
                               <tr className="text-slate-400 border-b border-slate-800/80">
-                                <th className="py-2.5 px-2 w-10">#</th>
-                                <th className="py-2.5 px-3">ทีม</th>
-                                <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                <th className="py-2.5 px-1.5 w-8">#</th>
+                                <th className="py-2.5 px-2">ทีม</th>
+                                <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                               </tr>
                             </thead>
                             <tbody>
                               {teamsD2.slice(10, 20).map((team, idx) => (
                                 <tr key={team.id} className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30" onClick={() => handleOpenTeamDetailModal(team)}>
-                                  <td className="py-3 px-2 font-bold text-slate-400">{idx + 11}</td>
-                                  <td className="py-3 px-3 font-semibold text-slate-200">
-                                    <div className="flex items-center gap-2.5">
-                                      <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                  <td className="py-3 px-1.5 font-bold text-slate-400">{idx + 11}</td>
+                                  <td className="py-3 px-2 font-semibold text-slate-200">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                         {team.logo_url ? (
                                           <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                          <span className="text-[11px] font-bold text-slate-400">{team.team_name.charAt(0)}</span>
+                                          <span className="text-[10px] font-bold text-slate-400">{team.team_name.charAt(0)}</span>
                                         )}
                                       </div>
-                                      <span className="truncate max-w-[150px]">{team.team_name}</span>
+                                      <span className="truncate max-w-[120px]">{team.team_name}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-2 text-center font-bold text-slate-400">{team.wwcd || 0}</td>
-                                  <td className="py-3 px-2 text-right font-extrabold text-slate-200">{team.total_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-bold text-slate-400">{team.wwcd || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.place_points || 0}</td>
+                                  <td className="py-3 px-1 text-center font-semibold text-slate-300">{team.kill_points || 0}</td>
+                                  <td className="py-3 px-1.5 text-right font-extrabold text-slate-200">{team.total_points || 0}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2417,10 +2433,12 @@ export default function ScrimManagementApp() {
                             <table className="w-full text-left text-xs">
                               <thead>
                                 <tr className="text-slate-400 border-b border-slate-800/80">
-                                  <th className="py-2.5 px-2 w-10">#</th>
-                                  <th className="py-2.5 px-3">ทีม</th>
-                                  <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                  <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                  <th className="py-2.5 px-1.5 w-8">#</th>
+                                  <th className="py-2.5 px-2">ทีม</th>
+                                  <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                  <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                  <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                  <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2441,21 +2459,23 @@ export default function ScrimManagementApp() {
                                       onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 1')}
                                       className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30"
                                     >
-                                      <td className="py-3 px-2 font-bold text-sky-400">{idx + 1}</td>
-                                      <td className="py-3 px-3 font-semibold text-slate-200">
-                                        <div className="flex items-center gap-2.5">
-                                          <div className="w-8 h-8 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                      <td className="py-3 px-1.5 font-bold text-sky-400">{idx + 1}</td>
+                                      <td className="py-3 px-2 font-semibold text-slate-200">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-7 h-7 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                             {t.logo_url ? (
                                               <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
-                                              <span className="text-[11px] font-bold text-sky-400">{t.team_name.charAt(0)}</span>
+                                              <span className="text-[10px] font-bold text-sky-400">{t.team_name.charAt(0)}</span>
                                             )}
                                           </div>
-                                          <span className="truncate max-w-[150px]">{t.team_name}</span>
+                                          <span className="truncate max-w-[120px]">{t.team_name}</span>
                                         </div>
                                       </td>
-                                      <td className="py-3 px-2 text-center font-bold text-sky-400">{t.wwcd || 0}</td>
-                                      <td className="py-3 px-2 text-right font-extrabold text-sky-300">{t.total_points || 0}</td>
+                                      <td className="py-3 px-1 text-center font-bold text-sky-400">{t.wwcd || 0}</td>
+                                      <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.place_points || 0}</td>
+                                      <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.kill_points || 0}</td>
+                                      <td className="py-3 px-1.5 text-right font-extrabold text-sky-300">{t.total_points || 0}</td>
                                     </tr>
                                   );
                                 })}
@@ -2471,10 +2491,12 @@ export default function ScrimManagementApp() {
                               <table className="w-full text-left text-xs">
                                 <thead>
                                   <tr className="text-slate-400 border-b border-slate-800/80">
-                                    <th className="py-2.5 px-2 w-10">#</th>
-                                    <th className="py-2.5 px-3">ทีม</th>
-                                    <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                    <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                    <th className="py-2.5 px-1.5 w-8">#</th>
+                                    <th className="py-2.5 px-2">ทีม</th>
+                                    <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                    <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                    <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                    <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -2495,21 +2517,23 @@ export default function ScrimManagementApp() {
                                         onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 1')}
                                         className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30"
                                       >
-                                        <td className="py-3 px-2 font-bold text-sky-400">{idx + 9}</td>
-                                        <td className="py-3 px-3 font-semibold text-slate-200">
-                                          <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                        <td className="py-3 px-1.5 font-bold text-sky-400">{idx + 9}</td>
+                                        <td className="py-3 px-2 font-semibold text-slate-200">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 rounded-lg bg-slate-950 border border-sky-500/30 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                               {t.logo_url ? (
                                                 <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
                                               ) : (
-                                                <span className="text-[11px] font-bold text-sky-400">{t.team_name.charAt(0)}</span>
+                                                <span className="text-[10px] font-bold text-sky-400">{t.team_name.charAt(0)}</span>
                                               )}
                                             </div>
-                                            <span className="truncate max-w-[150px]">{t.team_name}</span>
+                                            <span className="truncate max-w-[120px]">{t.team_name}</span>
                                           </div>
                                         </td>
-                                        <td className="py-3 px-2 text-center font-bold text-sky-400">{t.wwcd || 0}</td>
-                                        <td className="py-3 px-2 text-right font-extrabold text-sky-300">{t.total_points || 0}</td>
+                                        <td className="py-3 px-1 text-center font-bold text-sky-400">{t.wwcd || 0}</td>
+                                        <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.place_points || 0}</td>
+                                        <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.kill_points || 0}</td>
+                                        <td className="py-3 px-1.5 text-right font-extrabold text-sky-300">{t.total_points || 0}</td>
                                       </tr>
                                     );
                                   })}
@@ -2533,10 +2557,12 @@ export default function ScrimManagementApp() {
                             <table className="w-full text-left text-xs">
                               <thead>
                                 <tr className="text-slate-400 border-b border-slate-800/80">
-                                  <th className="py-2.5 px-2 w-10">#</th>
-                                  <th className="py-2.5 px-3">ทีม</th>
-                                  <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                  <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                  <th className="py-2.5 px-1.5 w-8">#</th>
+                                  <th className="py-2.5 px-2">ทีม</th>
+                                  <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                  <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                  <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                  <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2557,21 +2583,23 @@ export default function ScrimManagementApp() {
                                       onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 2')}
                                       className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30"
                                     >
-                                      <td className="py-3 px-2 font-bold text-slate-400">{idx + 1}</td>
-                                      <td className="py-3 px-3 font-semibold text-slate-200">
-                                        <div className="flex items-center gap-2.5">
-                                          <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                      <td className="py-3 px-1.5 font-bold text-slate-400">{idx + 1}</td>
+                                      <td className="py-3 px-2 font-semibold text-slate-200">
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-7 h-7 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                             {t.logo_url ? (
                                               <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
-                                              <span className="text-[11px] font-bold text-slate-400">{t.team_name.charAt(0)}</span>
+                                              <span className="text-[10px] font-bold text-slate-400">{t.team_name.charAt(0)}</span>
                                             )}
                                           </div>
-                                          <span className="truncate max-w-[150px]">{t.team_name}</span>
+                                          <span className="truncate max-w-[120px]">{t.team_name}</span>
                                         </div>
                                       </td>
-                                      <td className="py-3 px-2 text-center font-bold text-slate-400">{t.wwcd || 0}</td>
-                                      <td className="py-3 px-2 text-right font-extrabold text-slate-200">{t.total_points || 0}</td>
+                                      <td className="py-3 px-1 text-center font-bold text-slate-400">{t.wwcd || 0}</td>
+                                      <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.place_points || 0}</td>
+                                      <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.kill_points || 0}</td>
+                                      <td className="py-3 px-1.5 text-right font-extrabold text-slate-200">{t.total_points || 0}</td>
                                     </tr>
                                   );
                                 })}
@@ -2587,10 +2615,12 @@ export default function ScrimManagementApp() {
                               <table className="w-full text-left text-xs">
                                 <thead>
                                   <tr className="text-slate-400 border-b border-slate-800/80">
-                                    <th className="py-2.5 px-2 w-10">#</th>
-                                    <th className="py-2.5 px-3">ทีม</th>
-                                    <th className="py-2.5 px-2 text-center w-12">ไก่</th>
-                                    <th className="py-2.5 px-2 text-right w-16">แต้ม</th>
+                                    <th className="py-2.5 px-1.5 w-8">#</th>
+                                    <th className="py-2.5 px-2">ทีม</th>
+                                    <th className="py-2.5 px-1 text-center w-10">ไก่</th>
+                                    <th className="py-2.5 px-1 text-center w-12">อันดับ</th>
+                                    <th className="py-2.5 px-1 text-center w-12">คิล</th>
+                                    <th className="py-2.5 px-1.5 text-right w-14">แต้ม</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -2611,21 +2641,23 @@ export default function ScrimManagementApp() {
                                         onClick={() => handleOpenHistoryTeamModal(teamDataToPass, 'Division 2')}
                                         className="border-b border-slate-800/40 cursor-pointer hover:bg-slate-800/30"
                                       >
-                                        <td className="py-3 px-2 font-bold text-slate-400">{idx + 11}</td>
-                                        <td className="py-3 px-3 font-semibold text-slate-200">
-                                          <div className="flex items-center gap-2.5">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
+                                        <td className="py-3 px-1.5 font-bold text-slate-400">{idx + 11}</td>
+                                        <td className="py-3 px-2 font-semibold text-slate-200">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 rounded-lg bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow">
                                               {t.logo_url ? (
                                                 <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
                                               ) : (
-                                                <span className="text-[11px] font-bold text-slate-400">{t.team_name.charAt(0)}</span>
+                                                <span className="text-[10px] font-bold text-slate-400">{t.team_name.charAt(0)}</span>
                                               )}
                                             </div>
-                                            <span className="truncate max-w-[150px]">{t.team_name}</span>
+                                            <span className="truncate max-w-[120px]">{t.team_name}</span>
                                           </div>
                                         </td>
-                                        <td className="py-3 px-2 text-center font-bold text-slate-400">{t.wwcd || 0}</td>
-                                        <td className="py-3 px-2 text-right font-extrabold text-slate-200">{t.total_points || 0}</td>
+                                        <td className="py-3 px-1 text-center font-bold text-slate-400">{t.wwcd || 0}</td>
+                                        <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.place_points || 0}</td>
+                                        <td className="py-3 px-1 text-center font-semibold text-slate-300">{t.kill_points || 0}</td>
+                                        <td className="py-3 px-1.5 text-right font-extrabold text-slate-200">{t.total_points || 0}</td>
                                       </tr>
                                     );
                                   })}
